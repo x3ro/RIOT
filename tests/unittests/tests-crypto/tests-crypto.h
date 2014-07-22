@@ -54,6 +54,7 @@ Test* tests_crypto_aes_tests(void);
 Test* tests_crypto_3des_tests(void);
 Test* tests_crypto_twofish_tests(void);
 Test* tests_crypto_cipher_tests(void);
+Test* tests_crypto_modes_ccm_tests(void);
 
 #ifdef __cplusplus
 }
