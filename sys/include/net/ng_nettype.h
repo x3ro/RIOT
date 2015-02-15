@@ -7,7 +7,11 @@
  */
 
 /**
+ * @defgroup    net_ng_nettype  Protocol type definitions.
  * @ingroup     net
+ * @brief       Protocol type definitions to be used with the @ref net_ng_netapi,
+ *              the @ref net_ng_netdev, the @ref net_ng_netreg, and
+ *              the @ref net_ng_pkt
  * @{
  *
  * @file
@@ -51,7 +55,6 @@ typedef enum {
     /**
      * @{
      * @name Transport layer
-     *
      */
 #ifdef MODULE_NG_TCP
     NG_NETTYPE_TCP,             /**< Protocol is TCP */
@@ -62,6 +65,15 @@ typedef enum {
     /**
      * @}
      */
+
+
+    /**
+     * @{
+     * @name Testing
+     */
+#ifdef TEST_SUITES
+    NG_NETTYPE_TEST,
+#endif
 
     NG_NETTYPE_NUMOF,           /**< maximum number of available protocols */
 } ng_nettype_t;

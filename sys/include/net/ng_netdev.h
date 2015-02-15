@@ -8,8 +8,8 @@
  */
 
 /**
- * @defgroup    net_netdev Network device driver interface
- * @addtogroup  net
+ * @defgroup    net_ng_netdev   Network device driver interface
+ * @ingroup     net
  * @{
  *
  * @file
@@ -19,14 +19,14 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef __NETDEV_H_
-#define __NETDEV_H_
+#ifndef NG_NETDEV_H_
+#define NG_NETDEV_H_
 
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "net/ng_pktsnip.h"
+#include "net/ng_pkt.h"
 #include "net/ng_netconf.h"
 
 #ifdef __cplusplus
@@ -36,7 +36,7 @@ extern "C" {
 /**
  * @brief   Type for @ref msg_t if device fired an event
  */
-#define NETDEV_MSG_EVENT_TYPE           (0x0100)
+#define NG_NETDEV_MSG_TYPE_EVENT    (0x0100)
 
 /**
  * @brief   Possible event types that are send from the device driver to the
@@ -59,7 +59,10 @@ typedef enum {
 typedef void (*ng_netdev_event_cb_t)(ng_netdev_event_t type, void *arg);
 
 /**
- * @brief   Forward declaration of *ng_netdev_t*
+ * @brief   Forward declaration of ng_netdev_t due to cyclic dependency to
+ *          @ref ng_netdev_driver_t.
+ *
+ * @see ng_netdev
  */
 typedef struct ng_netdev ng_netdev_t;
 
@@ -77,7 +80,7 @@ typedef struct {
      * @param[in] pkt       pointer to the data in the packet buffer
      *
      * @return              number of bytes that were actually send out
-     * @return              -ENODEV if *dev* is invalid
+     * @return              -ENODEV if @p dev is invalid
      * @return              -ENOMSG if pkt is invalid
      */
     int (*send_data)(ng_netdev_t *dev, ng_pktsnip_t *pkt);
@@ -89,7 +92,7 @@ typedef struct {
      * @param[in] cb        function that is called on events
      *
      * @return              0 on success
-     * @return              -ENODEV if *dev* is invalid
+     * @return              -ENODEV if @p dev is invalid
      * @return              -ENOBUFS if maximum number of callbacks is exceeded
      */
     int (*add_event_callback)(ng_netdev_t *dev, ng_netdev_event_cb_t cb);
@@ -101,7 +104,7 @@ typedef struct {
      * @param[in] cb        callback function
      *
      * @return              0 on success
-     * @return              -ENODEV if *dev* is invalid
+     * @return              -ENODEV if @p dev is invalid
      * @return              -ENOPKG if callback was not registered
      */
     int (*rem_event_callback)(ng_netdev_t *dev, ng_netdev_event_cb_t cb);
@@ -112,17 +115,17 @@ typedef struct {
      * @param[in] dev           network device descriptor
      * @param[in] opt           option type
      * @param[out] value        pointer to store the option's value in
-     * @param[in,out] value_len the length of *value*. Must be initialized to
-     *                          the available space in *value* on call.
+     * @param[in,out] value_len the length of @p value. Must be initialized to
+     *                          the available space in @p value on call.
      *
      * @return              0 on success
-     * @return              -ENODEV if *dev* is invalid
-     * @return              -ENOTSUP if *opt* is not supported
-     * @return              -EOVERFLOW if available space in *value* given in
-     *                      *value_len* is too small to store the option value
+     * @return              -ENODEV if @p dev is invalid
+     * @return              -ENOTSUP if @p opt is not supported
+     * @return              -EOVERFLOW if available space in @p value given in
+     *                      @p value_len is too small to store the option value
      */
     int (*get)(ng_netdev_t *dev, ng_netconf_opt_t opt,
-                      void *value, size_t *value_len);
+               void *value, size_t *value_len);
 
     /**
      * @brief   Set an option value for a given network device
@@ -130,12 +133,12 @@ typedef struct {
      * @param[in] dev       network device descriptor
      * @param[in] opt       option type
      * @param[in] value     value to set
-     * @param[in] value_len the length of *value*
+     * @param[in] value_len the length of @p value
      *
      * @return              0 on success
-     * @return              -ENODEV if *dev* is invalid
-     * @return              -ENOTSUP if *opt* is not supported
-     * @return              -EINVAL if *value* is invalid
+     * @return              -ENODEV if @p dev is invalid
+     * @return              -ENOTSUP if @p opt is not supported
+     * @return              -EINVAL if @p value is invalid
      */
     int (*set)(ng_netdev_t *dev, ng_netconf_opt_t opt,
                void *value, size_t value_len);
@@ -157,6 +160,8 @@ typedef struct {
  *          specific fields
  *
  * The netdev structure is the parent for all network device driver descriptors.
+ *
+ * @see ng_netdev_t
  */
 struct ng_netdev {
     ng_netdev_driver_t *driver;     /**< pointer to the devices interface */
@@ -168,5 +173,5 @@ struct ng_netdev {
 }
 #endif
 
-#endif /* __NETDEV_H_ */
+#endif /* NG_NETDEV_H_ */
 /** @} */
