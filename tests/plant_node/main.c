@@ -43,7 +43,7 @@ int main(void)
     puts("\nRIOT test for a moisture sensor\n");
 
     timex_t sleep1 = timex_set(1, 0); /* 1 sec. */
-    timex_t sleep2 = timex_set(1, 0); /* 10 sec. */
+    timex_t sleep2 = timex_set(1, 0); /* 1 sec. */
 
     /* initialize a GPIO that powers the sensor just during a measure */
     printf("Initializing GPIO_%i as power supplying pin", GPIO_POWER_PIN);
@@ -91,7 +91,7 @@ int main(void)
             puts("Soil is dry");
         }
 
-             /* wait for next measure */
+         /* wait for next measure */
         vtimer_sleep(sleep2);
     }
 
