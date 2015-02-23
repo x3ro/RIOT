@@ -10,3 +10,9 @@ To verify the seen value you can hold the sensor into a glass of water or touch 
 If using the sensor in your plant pot, you should not set the soil under continous voltage. Also you should not measure more often than "a couple  of times" in an hour.
 
 This test uses timers. Be aware that RIOT timers in the current master may crach after an hour or so!
+
+## Notes for samr21-xpro
+
+You need to change the standard output device from `UART_0` to `UART_1` to free the external ADC reference voltage pin. Then you need to connect an external tty/USB converter to see outputs on your terminal (i.e.  pyterm). 
+
+When using the samr21-xpro you need the ADC mode with external reference pin. When this is enabled in the periph.conf.h you need to connect the 3V3 pin with the V_ref pin (on samr21-xpro PA04).
