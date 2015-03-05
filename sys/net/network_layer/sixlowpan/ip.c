@@ -690,15 +690,7 @@ ipv6_addr_t *ipv6_addr_set_by_eui64(ipv6_addr_t *out, int if_id,
 
     if (net_if_get_eui64((net_if_eui64_t *) &out->uint8[8], if_id,
                          force_generation)) {
-#ifdef MODULE_SIXLOWPAN
-
-        if (!sixlowpan_lowpan_eui64_to_short_addr((net_if_eui64_t *)&out->uint8[8])) {
-            out->uint8[8] ^= 0x02;
-        }
-
-#else
         out->uint8[8] ^= 0x02;
-#endif
         return out;
     }
     else {
@@ -890,9 +882,10 @@ uint16_t ipv6_csum(ipv6_hdr_t *ipv6_header, uint8_t *buf, uint16_t len,
                    uint8_t proto)
 {
     uint16_t sum = 0;
-    DEBUG("Calculate checksum over src: %s, dst: %s, len: %04X, buf: %p, proto: %u\n",
+    DEBUG("Calculate checksum over src: %s, ",
           ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN,
-                           &ipv6_header->srcaddr),
+                           &ipv6_header->srcaddr));
+    DEBUG("dst: %s, len: %04X, buf: %p, proto: %u\n",
           ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN,
                            &ipv6_header->destaddr),
           len, buf, proto);
