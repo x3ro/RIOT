@@ -115,17 +115,17 @@ typedef struct {
      * @param[in] dev           network device descriptor
      * @param[in] opt           option type
      * @param[out] value        pointer to store the option's value in
-     * @param[in,out] value_len the length of @p value. Must be initialized to
-     *                          the available space in @p value on call.
+     * @param[in] max_len       maximal amount of byte that fit into @p value
      *
-     * @return              0 on success
+     * @return              number of bytes written to @p value
      * @return              -ENODEV if @p dev is invalid
      * @return              -ENOTSUP if @p opt is not supported
      * @return              -EOVERFLOW if available space in @p value given in
-     *                      @p value_len is too small to store the option value
+     *                      @p max_len is too small to store the option value
+     * @return              -ECANCELED if internal driver error occurred
      */
     int (*get)(ng_netdev_t *dev, ng_netconf_opt_t opt,
-               void *value, size_t *value_len);
+               void *value, size_t max_len);
 
     /**
      * @brief   Set an option value for a given network device
@@ -135,23 +135,24 @@ typedef struct {
      * @param[in] value     value to set
      * @param[in] value_len the length of @p value
      *
-     * @return              0 on success
+     * @return              number of bytes used from @p value
      * @return              -ENODEV if @p dev is invalid
      * @return              -ENOTSUP if @p opt is not supported
      * @return              -EINVAL if @p value is invalid
+     * @return              -ECANCELED if internal driver error occurred
      */
     int (*set)(ng_netdev_t *dev, ng_netconf_opt_t opt,
                void *value, size_t value_len);
 
     /**
      * @brief   This function is called by a MAC layer when a message of type
-     *          NETDEV_MSG_EVENT_TYPE was received
+     *          @ref NG_NETDEV_MSG_TYPE_EVENT was received
      *
      * @param[in] dev           network device descriptor
-     * @param[in] event_type    event type, given by @ref msg_t::value in the
-     *                          received message
+     * @param[in] event_type    event type, given by msg_t::content::value
+     *                          in the received message
      */
-    void (*isr_event)(ng_netdev_t *dev, uint16_t event_type);
+    void (*isr_event)(ng_netdev_t *dev, uint32_t event_type);
 } ng_netdev_driver_t;
 
 /**

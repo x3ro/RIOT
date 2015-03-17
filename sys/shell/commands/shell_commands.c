@@ -150,6 +150,15 @@ extern void _mersenne_init(int argc, char **argv);
 extern void _mersenne_get(int argc, char **argv);
 #endif
 
+#ifdef MODULE_NG_NETIF
+#ifndef MODULE_NET_IF
+extern void _netif_config(int argc, char **argv);
+#endif
+#ifndef MODULE_TRANSCEIVER
+extern void _netif_send(int argc, char **argv);
+#endif
+#endif
+
 const shell_command_t _shell_command_list[] = {
     {"reboot", "Reboot the node", _reboot_handler},
 #ifdef MODULE_CONFIG
@@ -242,6 +251,18 @@ const shell_command_t _shell_command_list[] = {
 #endif
 #ifdef CPU_X86
     {"lspci", "Lists PCI devices", _x86_lspci},
+#endif
+#ifdef MODULE_NG_NETIF
+#ifndef MODULE_NET_IF
+    {
+        "ifconfig",
+        "Configures a network interface\n\nusage: %s [<if_id> set <key> <value>]]",
+        _netif_config
+    },
+#endif
+#ifndef MODULE_TRANSCEIVER
+    {"txtsnd", "send raw data", _netif_send },
+#endif
 #endif
     {NULL, NULL, NULL}
 };
