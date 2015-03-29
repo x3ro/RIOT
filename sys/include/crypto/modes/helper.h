@@ -34,8 +34,8 @@
  */
 static inline void block_inc_ctr(uint8_t block[16], uint8_t L)
 {
-	for (uint8_t i = 15; i > 15 - L && !++block[i]; --i)
-		;
+    for (uint8_t i = 15; i > 15 - L && !++block[i]; --i)
+        ;
 }
 
 
@@ -48,11 +48,11 @@ static inline void block_inc_ctr(uint8_t block[16], uint8_t L)
  */
 static inline int equals(uint8_t* a, uint8_t* b, size_t len)
 {
-	int result = 1;
-	while (len-- && (result &= *a++ == *b++))
-		;
+    int result = 1;
+    while (len-- && (result &= *a++ == *b++))
+        ;
 
-	return result;
+    return result;
 }
 
 #endif /* __CRYPTO_MODES_HELPER_H_ */
