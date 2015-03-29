@@ -23,6 +23,9 @@
 #include "kernel.h"
 #include "crypto/ciphers.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Encrypt data of arbitrary length in ecb mode. Caution each identical
@@ -52,5 +55,9 @@ int cipher_encrypt_ecb(cipher_t* cipher, uint8_t* input, size_t length,
  */
 int cipher_decrypt_ecb(cipher_t* cipher, uint8_t* input, size_t length,
                        uint8_t* output);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __CRYPTO_MODES_ECB_H_*/

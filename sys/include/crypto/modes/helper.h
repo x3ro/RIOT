@@ -22,6 +22,10 @@
 
 #include "kernel.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define min(a,b) ((a) < (b) ? (a) : (b))
 
 /**
@@ -54,5 +58,9 @@ static inline int equals(uint8_t* a, uint8_t* b, size_t len)
 
     return result;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __CRYPTO_MODES_HELPER_H_ */

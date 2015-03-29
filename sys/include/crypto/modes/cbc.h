@@ -23,6 +23,10 @@
 #include "kernel.h"
 #include "crypto/ciphers.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Encrypt data of arbitrary length in cipher block chaining mode.
  *
@@ -50,5 +54,9 @@ int cipher_encrypt_cbc(cipher_t* cipher, uint8_t iv[16], uint8_t* input,
  */
 int cipher_decrypt_cbc(cipher_t* cipher, uint8_t iv[16], uint8_t* input,
                        size_t input_len, uint8_t* output);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __CRYPTO_MODES_CBC_H_ */
