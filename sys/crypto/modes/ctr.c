@@ -26,10 +26,12 @@ int cipher_encrypt_ctr(cipher_t* cipher, uint8_t nonce_counter[16],
                        uint8_t* output)
 {
     size_t offset = 0;
-    uint8_t stream_block[16] = {0}, block_size_input, block_size;
+    uint8_t stream_block[16] = {0}, block_size;
 
     block_size = cipher_get_block_size(cipher);
     do {
+        uint8_t block_size_input;
+
         if (cipher_encrypt(cipher, nonce_counter, stream_block) != 1) {
             return CIPHER_ERR_ENC_FAILED;
         }

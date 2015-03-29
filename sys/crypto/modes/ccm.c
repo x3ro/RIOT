@@ -28,14 +28,14 @@
 int ccm_compute_cbc_mac(cipher_t* cipher, uint8_t iv[16],
                         uint8_t* input, size_t length, uint8_t* mac)
 {
-    uint8_t offset, block_size, block_size_input, mac_enc[16] = {0};
+    uint8_t offset, block_size, mac_enc[16] = {0};
 
     block_size = cipher_get_block_size(cipher);
     memcpy(mac, iv, 16);
     offset = 0;
     do {
-        block_size_input = (length - offset > block_size) ?
-                           block_size : length - offset;
+        uint8_t block_size_input = (length - offset > block_size) ?
+                                   block_size : length - offset;
 
         /* CBC-Mode: XOR plaintext with ciphertext of (n-1)-th block */
         for (int i = 0; i < block_size_input; ++i) {
@@ -93,12 +93,11 @@ int ccm_create_mac_iv(cipher_t* cipher, uint8_t auth_data_len, uint8_t M,
 int ccm_compute_adata_mac(cipher_t* cipher, uint8_t* auth_data,
                           uint32_t auth_data_len, uint8_t X1[16])
 {
-    int len;
-    /* 16 octet block size + max. 10 len encoding  */
-    uint8_t auth_data_encoded[26],
-            len_encoding = 0;
-
     if (auth_data_len > 0) {
+        int len;
+        /* 16 octet block size + max. 10 len encoding  */
+        uint8_t auth_data_encoded[26], len_encoding = 0;
+
         if ( auth_data_len < (2 << 16)) {       /* length (0x0001 ... 0xFEFF)  */
             len_encoding = 2;
 
