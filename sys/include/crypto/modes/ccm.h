@@ -23,6 +23,10 @@
 #include "kernel.h"
 #include "crypto/ciphers.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CCM_ERR_INVALID_NONCE_LENGTH -2
 #define CCM_ERR_INVALID_CBC_MAC -3
 #define CCM_ERR_INVALID_DATA_LENGTH -3
@@ -77,5 +81,9 @@ int cipher_decrypt_ccm(cipher_t* cipher, uint8_t* auth_data,
                        uint32_t auth_data_len, uint8_t mac_length,
                        uint8_t length_encoding, uint8_t* nonce, size_t nonce_len,
                        uint8_t* input, size_t input_len, uint8_t* output);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __CRYPTO_MODES_CCM_H_ */

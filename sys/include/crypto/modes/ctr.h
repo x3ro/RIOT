@@ -23,6 +23,10 @@
 #include "kernel.h"
 #include "crypto/ciphers.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Encrypt data of arbitrary length in counter mode.
  *
@@ -62,5 +66,9 @@ int cipher_encrypt_ctr(cipher_t* cipher, uint8_t nonce_counter[16],
 int cipher_decrypt_ctr(cipher_t* cipher, uint8_t nonce_counter[16],
                        uint8_t nonce_len, uint8_t* input, size_t length,
                        uint8_t* output);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __CRYPTO_MODES_CTR_H_*/
