@@ -39,6 +39,9 @@
  *      printf("Cipher encryption!\n");
  * \endcode
  *
+ * If you need to encrypt data of arbitrary size take a look at the different
+ * operation modes like: CBC, CTR or CCM.
+ *
  * Additional examples can be found in the test suite.
  *
  * \section hashes Hashes
