@@ -748,7 +748,7 @@ int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
     return 1;
 }
 
-int aes_setup_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
+int aes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
 {
     return aes_init(context, AES_BLOCK_SIZE, key, keysize);
 }
