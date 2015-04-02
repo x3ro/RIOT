@@ -40,13 +40,13 @@
 /**
  * Interface to the aes cipher
  */
-block_cipher_interface_t aes_interface = {
-    "AES",
+cipher_interface_t aes_interface = {
+    AES_BLOCK_SIZE,
+    AES_KEY_SIZE,
     aes_init,
     aes_encrypt,
     aes_decrypt,
-    aes_setup_key,
-    aes_get_preferred_block_size
+    aes_set_key
 };
 
 static const u32 Te0[256] = {
@@ -720,8 +720,8 @@ static const u32 rcon[] = {
 };
 
 
-int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t keySize,
-             uint8_t *key)
+int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+             uint8_t keySize)
 {
     //printf("%-40s: Entry\r\n", __FUNCTION__);
     // 16 byte blocks only
@@ -732,15 +732,15 @@ int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t keySize,
 
     uint8_t i;
 
-    //key must be at least CIPHERS_KEYSIZE Bytes long
-    if (keySize < CIPHERS_KEYSIZE) {
+    //key must be at least CIPHERS_MAX_KEY_SIZE Bytes long
+    if (keySize < CIPHERS_MAX_KEY_SIZE) {
         //fill up by concatenating key to as long as needed
-        for (i = 0; i < CIPHERS_KEYSIZE; i++) {
+        for (i = 0; i < CIPHERS_MAX_KEY_SIZE; i++) {
             context->context[i] = key[(i % keySize)];
         }
     }
     else {
-        for (i = 0; i < CIPHERS_KEYSIZE; i++) {
+        for (i = 0; i < CIPHERS_MAX_KEY_SIZE; i++) {
             context->context[i] = key[i];
         }
     }
@@ -750,7 +750,7 @@ int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t keySize,
 
 int aes_setup_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
 {
-    return aes_init(context, aes_get_preferred_block_size(), keysize, key);
+    return aes_init(context, AES_BLOCK_SIZE, key, keysize);
 }
 
 /**
@@ -1456,11 +1456,6 @@ int aes_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
         rk[3];
     PUTU32(plainBlock + 12, s3);
     return 1;
-}
-
-uint8_t aes_get_preferred_block_size(void)
-{
-    return AES_BLOCK_SIZE;
 }
 
 #endif /* AES_ASM */
