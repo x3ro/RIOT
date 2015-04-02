@@ -22,6 +22,8 @@
 #ifndef __CIPHERS_H_
 #define __CIPHERS_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,16 +42,21 @@ extern "C" {
 // #define SKIPJACK
 
 /** @brief the length of keys in bytes */
-#define PARSEC_MAX_BLOCK_CIPHERS  5
-#define CIPHERS_KEYSIZE           20
+#define CIPHERS_MAX_KEY_SIZE 20
+
+/**
+ * error codes
+ */
+#define CIPHER_ERR_UNSUPPORTED_CIHPER -2
+#define CIPHER_ERR_INVALID_KEY_SIZE -3
 
 /**
  * @brief   the context for cipher-operations
  *          always order by number of bytes descending!!! <br>
  * rc5          needs 104 bytes                           <br>
  * threedes     needs 24  bytes                           <br>
- * aes          needs PARSEC_KEYSIZE bytes                <br>
- * twofish      needs PARSEC_KEYSIZE bytes                <br>
+ * aes          needs CIPHERS_MAX_KEY_SIZE bytes          <br>
+ * twofish      needs CIPHERS_MAX_KEY_SIZE bytes          <br>
  * skipjack     needs 20 bytes                            <br>
  * identity     needs 1  byte                             <br>
  */
@@ -59,9 +66,9 @@ typedef struct {
 #elif defined(THREEDES)
     uint8_t context[24];              /**< supports ThreeDES and lower */
 #elif defined(AES)
-    uint8_t context[CIPHERS_KEYSIZE]; /**< supports AES and lower */
+    uint8_t context[CIPHERS_MAX_KEY_SIZE]; /**< supports AES and lower */
 #elif defined(TWOFISH)
-    uint8_t context[CIPHERS_KEYSIZE]; /**< supports TwoFish and lower */
+    uint8_t context[CIPHERS_MAX_KEY_SIZE]; /**< supports TwoFish and lower */
 #elif defined(SKIPJACK)
     uint8_t context[20];              /**< supports SkipJack and lower */
 #endif
@@ -71,43 +78,124 @@ typedef struct {
 /**
  * @brief   BlockCipher-Interface for the Cipher-Algorithms
  */
-typedef struct {
-    /** the name of the cipher algorithm as a string */
-    char name[10];
+typedef struct cipher_interface_st {
+    /** Blocksize of this cipher */
+    uint8_t block_size;
+
+    /** Maximum key size for this cipher */
+    uint8_t max_key_size;
+
     /** the init function */
-    int (*BlockCipher_init)(cipher_context_t *context, uint8_t blockSize,
-                            uint8_t keySize, uint8_t *key);
+    int (*init)(cipher_context_t* ctx, uint8_t block_size, uint8_t* key,
+                uint8_t key_size);
+
     /** the encrypt function */
-    int (*BlockCipher_encrypt)(cipher_context_t *context, uint8_t *plainBlock,
-                               uint8_t *cipherBlock);
+    int (*encrypt)(cipher_context_t* ctx, uint8_t* plain_block,
+                   uint8_t* cipher_block);
+
     /** the decrypt function */
-    int (*BlockCipher_decrypt)(cipher_context_t *context, uint8_t *cipherBlock,
-                               uint8_t *plainBlock);
-    /** the setupKey function */
-    int (*setupKey)(cipher_context_t *context, uint8_t *key, uint8_t keysize);
-    /** read the BlockSize of this Cipher */
-    uint8_t (*BlockCipherInfo_getPreferredBlockSize)(void);
-} block_cipher_interface_t;
+    int (*decrypt)(cipher_context_t* ctx, uint8_t* cipher_block,
+                   uint8_t* plain_block);
+
+    /** the set_key function */
+    int (*set_key)(cipher_context_t* ctx, uint8_t* key, uint8_t key_size);
+} cipher_interface_t;
 
 
 /**
- * @brief The cipher mode context
+ * @brief   Numerical IDs for each cipher
  */
-typedef struct CipherModeContext {
-    cipher_context_t cc;         /**< CipherContext for the cipher-operations */
-    uint8_t context[24];         /**< context for the block-cipher-modes' */
-} CipherModeContext;
+typedef enum {
+    CIPHER_UNKNOWN,
+    CIPHER_NULL,
+    CIPHER_RC5,
+    CIPHER_3DES,
+    CIPHER_AES_128,
+    CIPHER_TWOFISH,
+    CIPHER_SKIPJACK
+} cipher_id_t;
+
+/**
+ * @brief   cipher entry
+ */
+typedef struct cipher_entry_st {
+    const char* name;
+    cipher_id_t id;
+    cipher_interface_t* interface;
+    uint8_t block_size;
+} cipher_entry_t;
 
 
 /**
- * @brief  struct for an archive of all available ciphers
+ * @brief   list of all supported ciphers
+ */
+extern const cipher_entry_t cipher_list[];
+
+
+/**
+ * @brief basic struct for using block ciphers
+ *        contains the cipher interface and the context
  */
 typedef struct {
-    /** the number of available ciphers */
-    uint8_t NoCiphers;
-    /** the ciphers in form or BlockCipherInterface_ts */
-    block_cipher_interface_t ciphers[PARSEC_MAX_BLOCK_CIPHERS];
-} block_cipher_archive_t;
+    cipher_interface_t* interface;
+    cipher_context_t context;
+} cipher_t;
+
+
+/**
+ * @brief Initialize new cipher state
+ *
+ * @param cipher     cipher struct to init (already allocated memory)
+ * @param cipher_id  cipher algorithm id
+ * @param key        encryption key to use
+ * @param len        length of the encryption key
+ */
+int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, uint8_t* key,
+                uint8_t key_size);
+
+
+/**
+ * @brief set new encryption key for a cipher
+ *
+ * @param cipher     cipher struct to use
+ * @param key        new encryption key
+ * @param len        length of the new encryption key
+ */
+int cipher_set_key(cipher_t* cipher, uint8_t* key, uint8_t key_size);
+
+
+/**
+ * @brief Encrypt data of BLOCK_SIZE length
+ * *
+ *
+ * @param cipher     Already initialized cipher struct
+ * @param input      pointer to input data to encrypt
+ * @param output     pointer to allocated memory for encrypted data. It has to
+ *                   be of size BLOCK_SIZE
+ */
+int cipher_encrypt(cipher_t* cipher, uint8_t* input, uint8_t* output);
+
+
+/**
+ * @brief Decrypt data of BLOCK_SIZE length
+ * *
+ *
+ * @param cipher     Already initialized cipher struct
+ * @param input      pointer to input data (of size BLOCKS_SIZE) to decrypt
+ * @param output     pointer to allocated memory for decrypted data. It has to
+ *                   be of size BLOCK_SIZE
+ */
+int cipher_decrypt(cipher_t* cipher, uint8_t* input, uint8_t* output);
+
+
+/**
+ * @brief Get block size of cipher
+ * *
+ *
+ * @param cipher     Already initialized cipher struct
+ */
+int cipher_get_block_size(cipher_t* cipher);
+
 
 #ifdef __cplusplus
 }
