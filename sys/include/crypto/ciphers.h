@@ -103,34 +103,13 @@ typedef struct cipher_interface_st {
 } cipher_interface_t;
 
 
-/**
- * @brief   Numerical IDs for each cipher
- */
-typedef enum {
-    CIPHER_UNKNOWN,
-    CIPHER_NULL,
-    CIPHER_RC5,
-    CIPHER_3DES,
-    CIPHER_AES_128,
-    CIPHER_TWOFISH,
-    CIPHER_SKIPJACK
-} cipher_id_t;
+typedef const cipher_interface_t *cipher_id_t;
 
-/**
- * @brief   cipher entry
- */
-typedef struct cipher_entry_st {
-    const char* name;
-    cipher_id_t id;
-    const cipher_interface_t* interface;
-    uint8_t block_size;
-} cipher_entry_t;
-
-
-/**
- * @brief   list of all supported ciphers
- */
-extern const cipher_entry_t cipher_list[];
+extern const cipher_id_t CIPHER_RC5;
+extern const cipher_id_t CIPHER_3DES;
+extern const cipher_id_t CIPHER_AES_128;
+extern const cipher_id_t CIPHER_TWOFISH;
+extern const cipher_id_t CIPHER_SKIPJACK;
 
 
 /**

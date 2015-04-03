@@ -115,12 +115,6 @@ int rc5_encrypt(const cipher_context_t *context, const uint8_t *plain_block, uin
 int rc5_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                 uint8_t *plainBlock);
 
-/**
- * Interface to access the functions
- *
- */
-extern  cipher_interface_t rc5_interface;
-
 #ifdef __cplusplus
 }
 #endif

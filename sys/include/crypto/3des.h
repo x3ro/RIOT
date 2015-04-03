@@ -130,12 +130,6 @@ int tripledes_encrypt(const cipher_context_t *context, const uint8_t *plain, uin
  */
 int tripledes_decrypt(const cipher_context_t *context, const uint8_t *crypt, uint8_t *plain);
 
-/**
- * Interface to access the functions
- *
- */
-extern cipher_interface_t tripledes_interface;
-
 #ifdef __cplusplus
 }
 #endif

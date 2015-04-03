@@ -253,12 +253,6 @@ int twofish_encrypt(const cipher_context_t *context, const uint8_t *in, uint8_t 
  */
 int twofish_decrypt(const cipher_context_t *context, const uint8_t *in, uint8_t *out);
 
-/**
- * Interface to access the functions
- *
- */
-extern cipher_interface_t twofish_interface;
-
 #ifdef __cplusplus
 }
 #endif
