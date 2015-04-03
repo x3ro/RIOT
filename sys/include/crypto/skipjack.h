@@ -109,8 +109,7 @@ typedef struct {
  * @return  Whether initialization was successful. The command may be
  *          unsuccessful if the key size or blockSize are not valid.
  */
-int skipjack_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
-                  uint8_t keySize);
+int skipjack_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize);
 
 /**
  * @brief   Encrypts a single block (of blockSize) using the passed context.

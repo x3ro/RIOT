@@ -316,13 +316,8 @@ int skipjack_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock
 }
 
 
-int skipjack_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key, uint8_t keysize)
+int skipjack_init(cipher_context_t *context, const uint8_t *key, uint8_t keysize)
 {
-    // 8 byte blocks only
-    if (blockSize != BLOCK_SIZE) {
-        return 0;
-    }
-
     int i = 0;
     skipjack_context_t *skipjack_context = (skipjack_context_t *)context->context;
     uint8_t *skey = skipjack_context->skey;

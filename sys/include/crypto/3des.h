@@ -89,8 +89,7 @@ static const uint32_t bigbyte[24] = {
  *
  * @return  0 if blocksize doesn't match else 1
  */
-int tripledes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t* key,
-                   uint8_t keySize);
+int tripledes_init(cipher_context_t *context, const uint8_t* key, uint8_t keySize);
 
 /**
  * @brief   encrypts one plain-block and saves the result in crypt.

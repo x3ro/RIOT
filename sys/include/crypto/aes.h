@@ -84,8 +84,7 @@ typedef struct {
  *
  * @return  0 if blocksize doesn't match else 1
  */
-int aes_init(cipher_context_t *context, const uint8_t blockSize, const uint8_t *key,
-             uint8_t keySize);
+int aes_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize);
 
 /**
  * @brief   encrypts one plainBlock-block and saves the result in cipherblock.

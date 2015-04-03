@@ -248,17 +248,10 @@ static const uint32_t SP8[64] = {
 };
 
 
-int tripledes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
+int tripledes_init(cipher_context_t *context, const uint8_t *key,
                   uint8_t keySize)
 {
     uint8_t i;
-
-    //printf("%-40s: Entry\r\n", __FUNCTION__);
-    // 16 byte blocks only
-    if (blockSize != THREEDES_BLOCK_SIZE) {
-        printf("%-40s: blockSize != 3DES_BLOCK_SIZE...\r\n", __FUNCTION__);
-        return 0;
-    }
 
     //key must be at least 24 Bytes long
     if (keySize < 24) {
