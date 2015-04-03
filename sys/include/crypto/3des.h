@@ -89,7 +89,7 @@ static const uint32_t bigbyte[24] = {
  *
  * @return  0 if blocksize doesn't match else 1
  */
-int tripledes_init(cipher_context_t *context, uint8_t blockSize, uint8_t* key,
+int tripledes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t* key,
                    uint8_t keySize);
 
 /**
@@ -102,7 +102,7 @@ int tripledes_init(cipher_context_t *context, uint8_t blockSize, uint8_t* key,
  *
  * @return  0 if initialized blocksize is wrong, 1 else
  */
-int tripledes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
+int tripledes_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize);
 
 /**
  * @brief   encrypts one plain-block and saves the result in crypt.
@@ -121,7 +121,7 @@ int tripledes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
  *                      -2 if the key could not be setup correctly
  *                       1 if encryption was successful
  */
-int tripledes_encrypt(cipher_context_t *context, uint8_t *plain, uint8_t *crypt);
+int tripledes_encrypt(const cipher_context_t *context, const uint8_t *plain, uint8_t *crypt);
 
 /**
  * @brief  decrypts one cipher-block and saves the plain-block in plain.
@@ -140,7 +140,7 @@ int tripledes_encrypt(cipher_context_t *context, uint8_t *plain, uint8_t *crypt)
  *          -2 if the key could not be setup correctly
  *           1 if decryption was successful
  */
-int tripledes_decrypt(cipher_context_t *context, uint8_t *crypt, uint8_t *plain);
+int tripledes_decrypt(const cipher_context_t *context, const uint8_t *crypt, uint8_t *plain);
 
 /**
  * Interface to access the functions

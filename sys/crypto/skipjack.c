@@ -94,7 +94,7 @@ static const uint8_t SJ_F[] /*__attribute__((C))*/ = {
 };
 
 
-int skipjack_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int skipjack_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
                   uint8_t keySize)
 {
     // 8 byte blocks only
@@ -112,7 +112,7 @@ int skipjack_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
  * @param s     pointer to the resulting uint16_t
  *
  */
-static void c2sM(uint8_t *c, uint16_t *s)
+static void c2sM(const uint8_t *c, uint16_t *s)
 {
     memcpy(s, c, sizeof(uint16_t));
     return;
@@ -124,14 +124,14 @@ static void c2sM(uint8_t *c, uint16_t *s)
  * @param s pointer to the uint16_t input
  * @param c pointer to the first resulting uint8_ts
  */
-static void s2cM(uint16_t s, uint8_t *c)
+static void s2cM(const uint16_t s, uint8_t *c)
 {
     memcpy(c, &s, sizeof(uint16_t));
     return;
 }
 
 
-int skipjack_encrypt(cipher_context_t *context, uint8_t *plainBlock,
+int skipjack_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
                      uint8_t *cipherBlock)
 {
 
@@ -232,7 +232,7 @@ int skipjack_encrypt(cipher_context_t *context, uint8_t *plainBlock,
 }
 
 
-int skipjack_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
+int skipjack_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                      uint8_t *plainBlock)
 {
     /*register*/ uint8_t counter = 32;
@@ -327,7 +327,7 @@ int skipjack_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
 }
 
 
-int skipjack_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
+int skipjack_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize)
 {
     int i = 0;
     skipjack_context_t *skipjack_context = (skipjack_context_t *)context->context;

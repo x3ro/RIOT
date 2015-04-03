@@ -34,7 +34,7 @@ const cipher_entry_t cipher_list[] = {
 };
 
 
-int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, uint8_t* key,
+int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, const uint8_t* key,
                 uint8_t key_size)
 {
     const cipher_entry_t* entry = NULL;
@@ -62,7 +62,7 @@ int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, uint8_t* key,
 }
 
 
-int cipher_set_key(cipher_t* cipher, uint8_t* key, uint8_t key_size)
+int cipher_set_key(cipher_t* cipher, const uint8_t* key, uint8_t key_size)
 {
     if (key_size > cipher->interface->max_key_size) {
         return CIPHER_ERR_INVALID_KEY_SIZE;
@@ -72,19 +72,19 @@ int cipher_set_key(cipher_t* cipher, uint8_t* key, uint8_t key_size)
 }
 
 
-int cipher_encrypt(cipher_t* cipher, uint8_t* input, uint8_t* output)
+int cipher_encrypt(const cipher_t* cipher, const uint8_t* input, uint8_t* output)
 {
     return cipher->interface->encrypt(&cipher->context, input, output);
 }
 
 
-int cipher_decrypt(cipher_t* cipher, uint8_t* input, uint8_t* output)
+int cipher_decrypt(const cipher_t* cipher, const uint8_t* input, uint8_t* output)
 {
     return cipher->interface->decrypt(&cipher->context, input, output);
 }
 
 
-int cipher_get_block_size(cipher_t* cipher)
+int cipher_get_block_size(const cipher_t* cipher)
 {
     return cipher->interface->block_size;
 }
