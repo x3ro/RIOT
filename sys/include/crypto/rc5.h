@@ -116,18 +116,6 @@ int rc5_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                 uint8_t *plainBlock);
 
 /**
- * @brief   Sets up the key for usage with RC5
- *          Performs the key expansion on the real secret.
- *
- * @param   context       the cipher_context_t-struct to save the updated key in
- * @param   key           a pointer to the secret key
- * @param   keysize       the length of the secret key
- *
- * @return  SUCCESS
- */
-int rc5_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize);
-
-/**
  * Interface to access the functions
  *
  */

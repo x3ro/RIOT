@@ -45,8 +45,7 @@ cipher_interface_t aes_interface = {
     AES_KEY_SIZE,
     aes_init,
     aes_encrypt,
-    aes_decrypt,
-    aes_set_key
+    aes_decrypt
 };
 
 static const u32 Te0[256] = {
@@ -746,11 +745,6 @@ int aes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
     }
 
     return 1;
-}
-
-int aes_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize)
-{
-    return aes_init(context, AES_BLOCK_SIZE, key, keysize);
 }
 
 /**

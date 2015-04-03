@@ -49,8 +49,7 @@ cipher_interface_t tripledes_interface = {
     THREEDES_MAX_KEY_SIZE,
     tripledes_init,
     tripledes_encrypt,
-    tripledes_decrypt,
-    tripledes_set_key
+    tripledes_decrypt
 };
 
 /**
@@ -273,12 +272,6 @@ int tripledes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *
     }
 
     return 1;
-}
-
-int tripledes_set_key(cipher_context_t *context, const uint8_t *key,
-                                uint8_t keysize)
-{
-    return tripledes_init(context, THREEDES_BLOCK_SIZE, key, keysize);
 }
 
 int tripledes_encrypt(const cipher_context_t *context, const uint8_t *plain, uint8_t *crypt)
