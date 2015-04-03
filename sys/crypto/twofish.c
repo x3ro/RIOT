@@ -40,8 +40,7 @@ cipher_interface_t twofish_interface = {
     TWOFISH_KEY_SIZE,
     twofish_init,
     twofish_encrypt,
-    twofish_decrypt,
-    twofish_set_key
+    twofish_decrypt
 };
 
 /* These two tables are the q0 and q1 permutations, exactly as described in
@@ -499,11 +498,6 @@ int twofish_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *ke
     }
 
     return 1;
-}
-
-int twofish_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize)
-{
-    return twofish_init(context, TWOFISH_BLOCK_SIZE, key, keysize);
 }
 
 /**

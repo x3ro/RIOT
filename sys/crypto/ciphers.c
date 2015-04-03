@@ -62,16 +62,6 @@ int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, const uint8_t* key,
 }
 
 
-int cipher_set_key(cipher_t* cipher, const uint8_t* key, uint8_t key_size)
-{
-    if (key_size > cipher->interface->max_key_size) {
-        return CIPHER_ERR_INVALID_KEY_SIZE;
-    }
-
-    return cipher->interface->set_key(&cipher->context, key, key_size);
-}
-
-
 int cipher_encrypt(const cipher_t* cipher, const uint8_t* input, uint8_t* output)
 {
     return cipher->interface->encrypt(&cipher->context, input, output);
