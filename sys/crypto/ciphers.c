@@ -17,46 +17,16 @@
 #include <stdio.h>
 #include "crypto/ciphers.h"
 
-extern cipher_interface_t rc5_interface;
-extern cipher_interface_t tripledes_interface;
-extern cipher_interface_t aes_interface;
-extern cipher_interface_t twofish_interface;
-extern cipher_interface_t skipjack_interface;
-
-const cipher_entry_t cipher_list[] = {
-    //{"NULL", CIPHER_NULL, &null_interface, 16},
-    {"RC5-32/12", CIPHER_RC5, &rc5_interface, 32},
-    {"3DES", CIPHER_3DES, &tripledes_interface, 8},
-    {"AES-128", CIPHER_AES_128, &aes_interface, 16},
-    {"TWOFISH", CIPHER_TWOFISH, &twofish_interface, 16},
-    {"SKIPJACK", CIPHER_SKIPJACK, &skipjack_interface, 8},
-    {NULL, CIPHER_UNKNOWN, NULL, 0}
-};
-
 
 int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, const uint8_t* key,
                 uint8_t key_size)
 {
-    const cipher_entry_t* entry = NULL;
-
-    for (uint8_t i = 0; cipher_list[i].id != CIPHER_UNKNOWN; ++i) {
-        if (cipher_list[i].id == cipher_id) {
-            entry = &cipher_list[i];
-            break;
-        }
-    }
-
-    if (entry == NULL) {
-        return CIPHER_ERR_UNSUPPORTED_CIHPER;
-    }
-
-
-    if (key_size > entry->interface->max_key_size) {
+    if (key_size > cipher_id->max_key_size) {
         return CIPHER_ERR_INVALID_KEY_SIZE;
     }
 
-    cipher->interface = entry->interface;
-    return cipher->interface->init(&cipher->context, entry->block_size, key,
+    cipher->interface = cipher_id;
+    return cipher->interface->init(&cipher->context, cipher_id->block_size, key,
                                    key_size);
 
 }

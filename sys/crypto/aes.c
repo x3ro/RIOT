@@ -40,13 +40,14 @@
 /**
  * Interface to the aes cipher
  */
-cipher_interface_t aes_interface = {
+static const cipher_interface_t aes_interface = {
     AES_BLOCK_SIZE,
     AES_KEY_SIZE,
     aes_init,
     aes_encrypt,
     aes_decrypt
 };
+const cipher_id_t CIPHER_AES_128 = &aes_interface;
 
 static const u32 Te0[256] = {
     0xc66363a5U, 0xf87c7c84U, 0xee777799U, 0xf67b7b8dU,

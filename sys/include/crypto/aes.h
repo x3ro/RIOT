@@ -124,12 +124,6 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plain_block,
 int aes_decrypt(const cipher_context_t *context, const uint8_t *cipher_block,
                 uint8_t *plain_block);
 
-/**
-  * Interface to access the functions
-  *
-  */
-extern  cipher_interface_t aes_inerface;
-
 #ifdef __cplusplus
 }
 #endif
