@@ -473,16 +473,9 @@ static uint8_t calc_sb_tbl[512] = {
 
 
 
-int twofish_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
+int twofish_init(cipher_context_t *context, const uint8_t *key,
                  uint8_t keySize)
 {
-    //printf("%-40s: Entry\r\n", __FUNCTION__);
-    // 16 byte blocks only
-    if (blockSize != TWOFISH_BLOCK_SIZE) {
-        printf("%-40s: blockSize != TWOFISH_BLOCK_SIZE...\r\n", __FUNCTION__);
-        return 0;
-    }
-
     uint8_t i;
 
     //key must be at least CIPHERS_MAX_KEY_SIZE Bytes long

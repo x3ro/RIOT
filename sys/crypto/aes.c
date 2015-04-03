@@ -720,16 +720,8 @@ static const u32 rcon[] = {
 };
 
 
-int aes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
-             uint8_t keySize)
+int aes_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize)
 {
-    //printf("%-40s: Entry\r\n", __FUNCTION__);
-    // 16 byte blocks only
-    if (blockSize != AES_BLOCK_SIZE) {
-        printf("%-40s: blockSize != AES_BLOCK_SIZE...\r\n", __FUNCTION__);
-        return 0;
-    }
-
     uint8_t i;
 
     //key must be at least CIPHERS_MAX_KEY_SIZE Bytes long

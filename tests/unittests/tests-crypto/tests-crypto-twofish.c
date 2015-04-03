@@ -44,16 +44,16 @@ static void test_crypto_twofish_encrypt(void)
 {
 	cipher_context_t ctx;
 	int err;
-	uint8_t data[16];
+	uint8_t data[TWOFISH_BLOCK_SIZE];
 
-	err = twofish_init(&ctx, TWOFISH_BLOCK_SIZE, TEST_0_KEY, TWOFISH_KEY_SIZE);
+	err = twofish_init(&ctx, TEST_0_KEY, TWOFISH_KEY_SIZE);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = twofish_encrypt(&ctx, TEST_0_INP, data);
 	TEST_ASSERT_EQUAL_INT(1, err);
 	TEST_ASSERT_MESSAGE(1 == compare(TEST_0_ENC, data, TWOFISH_BLOCK_SIZE), "wrong ciphertext");
 
-	err = twofish_init(&ctx, TWOFISH_BLOCK_SIZE, TEST_1_KEY, TWOFISH_KEY_SIZE);
+	err = twofish_init(&ctx, TEST_1_KEY, TWOFISH_KEY_SIZE);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = twofish_encrypt(&ctx, TEST_1_INP, data);
@@ -66,16 +66,16 @@ static void test_crypto_twofish_decrypt(void)
 
 	cipher_context_t ctx;
 	int err;
-	uint8_t data[16];
+	uint8_t data[TWOFISH_BLOCK_SIZE];
 
-	err = twofish_init(&ctx, TWOFISH_BLOCK_SIZE, TEST_0_KEY, TWOFISH_KEY_SIZE);
+	err = twofish_init(&ctx, TEST_0_KEY, TWOFISH_KEY_SIZE);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = twofish_decrypt(&ctx, TEST_0_ENC, data);
 	TEST_ASSERT_EQUAL_INT(1, err);
 	TEST_ASSERT_MESSAGE(1 == compare(TEST_0_INP, data, TWOFISH_BLOCK_SIZE), "wrong plaintext");
 
-	err = twofish_init(&ctx, TWOFISH_BLOCK_SIZE, TEST_1_KEY, TWOFISH_KEY_SIZE);
+	err = twofish_init(&ctx, TEST_1_KEY, TWOFISH_KEY_SIZE);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = twofish_decrypt(&ctx, TEST_1_ENC, data);

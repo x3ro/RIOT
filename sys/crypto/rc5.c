@@ -113,14 +113,9 @@ int rc5_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
     return 1;
 }
 
-int rc5_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key, uint8_t keySize)
+int rc5_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize)
 {
-    (void)keySize;
-    // 8 byte blocks only
-    if (blockSize != BLOCK_SIZE) {
-        return 0;
-    }
-
+    (void) keySize;
     uint32_t *L, l, A, B, *S;
     uint8_t ii, jj;
     int8_t i;
