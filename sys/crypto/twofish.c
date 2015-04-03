@@ -35,13 +35,14 @@
 static int twofish_setup_key(twofish_context_t *ctx, const uint8_t *key, uint8_t keylen);
 
 // twofish interface
-cipher_interface_t twofish_interface = {
+static const cipher_interface_t twofish_interface = {
     TWOFISH_BLOCK_SIZE,
     TWOFISH_KEY_SIZE,
     twofish_init,
     twofish_encrypt,
     twofish_decrypt
 };
+const cipher_id_t CIPHER_TWOFISH = &twofish_interface;
 
 /* These two tables are the q0 and q1 permutations, exactly as described in
  * the Twofish paper. */

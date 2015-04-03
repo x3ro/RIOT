@@ -140,13 +140,6 @@ int skipjack_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
 int skipjack_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                      uint8_t *plainBlock);
 
-
-/**
- * Interface to access the functions
- *
- */
-extern cipher_interface_t skipjack_interface;
-
 #ifdef __cplusplus
 }
 #endif

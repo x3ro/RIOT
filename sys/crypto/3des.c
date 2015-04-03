@@ -44,13 +44,15 @@
 /**
  * @brief Interface to the 3DES cipher
  */
-cipher_interface_t tripledes_interface = {
+static const cipher_interface_t tripledes_interface = {
     THREEDES_BLOCK_SIZE,
     THREEDES_MAX_KEY_SIZE,
     tripledes_init,
     tripledes_encrypt,
     tripledes_decrypt
 };
+const cipher_id_t CIPHER_3DES = &tripledes_interface;
+
 
 /**
  * @brief struct for the 3DES key expansion

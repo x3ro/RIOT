@@ -36,13 +36,14 @@
 /**
  * @brief Interface to the rc5 cipher
  */
-cipher_interface_t rc5_interface = {
+static const cipher_interface_t rc5_interface = {
     BLOCK_SIZE,
     CIPHERS_MAX_KEY_SIZE,
     rc5_init,
     rc5_encrypt,
     rc5_decrypt
 };
+const cipher_id_t CIPHER_RC5 = &rc5_interface;
 
 
 int rc5_encrypt(const cipher_context_t *context, const uint8_t *block,

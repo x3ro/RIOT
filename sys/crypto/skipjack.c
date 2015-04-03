@@ -53,13 +53,14 @@
 /**
  * @brief Interface to the skipjack cipher
  */
-cipher_interface_t skipjack_interface = {
+static const cipher_interface_t skipjack_interface = {
     BLOCK_SIZE,
     CIPHERS_MAX_KEY_SIZE,
     skipjack_init,
     skipjack_encrypt,
     skipjack_decrypt
 };
+const cipher_id_t CIPHER_SKIPJACK = &skipjack_interface;
 
 // F-BOX
 // It can live in either RAM (faster access) or program memory (save ram,
