@@ -100,9 +100,6 @@ typedef struct cipher_interface_st {
     /** the decrypt function */
     int (*decrypt)(const cipher_context_t* ctx, const uint8_t* cipher_block,
                    uint8_t* plain_block);
-
-    /** the set_key function */
-    int (*set_key)(cipher_context_t* ctx, const uint8_t* key, uint8_t key_size);
 } cipher_interface_t;
 
 
@@ -156,16 +153,6 @@ typedef struct {
  */
 int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, const uint8_t* key,
                 uint8_t key_size);
-
-
-/**
- * @brief set new encryption key for a cipher
- *
- * @param cipher     cipher struct to use
- * @param key        new encryption key
- * @param len        length of the new encryption key
- */
-int cipher_set_key(cipher_t* cipher, const uint8_t* key, uint8_t key_size);
 
 
 /**

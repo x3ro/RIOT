@@ -228,18 +228,6 @@ typedef struct {
 int twofish_init(cipher_context_t *context, uint8_t block_size, const uint8_t *key, uint8_t key_size);
 
 /**
- * @brief   Sets up the context to use the passed key for usage with TwoFish
- *          Performs the key expansion on the real secret.
- *
- * @param   context     the CipherContext-struct to save the updated key in
- * @param   key         a pointer to the secret key
- * @param   key_size    the length of the secret key
- *
- * @return SUCCESS
- */
-int twofish_set_key(cipher_context_t *context, const uint8_t *key, uint8_t key_size);
-
-/**
  * @brief   Encrypts a single block (of blockSize) using the passed context.
  *
  * @param   context   holds the module specific opaque data related to the

@@ -58,8 +58,7 @@ cipher_interface_t skipjack_interface = {
     CIPHERS_MAX_KEY_SIZE,
     skipjack_init,
     skipjack_encrypt,
-    skipjack_decrypt,
-    skipjack_set_key
+    skipjack_decrypt
 };
 
 // F-BOX
@@ -93,17 +92,6 @@ static const uint8_t SJ_F[] /*__attribute__((C))*/ = {
     0x05, 0x59, 0x2A, 0x46
 };
 
-
-int skipjack_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
-                  uint8_t keySize)
-{
-    // 8 byte blocks only
-    if (blockSize != BLOCK_SIZE) {
-        return 0;
-    }
-
-    return skipjack_set_key(context, key, keySize);
-}
 
 /**
  * @brief convert 2x uint8_t to uint16_t
@@ -327,8 +315,13 @@ int skipjack_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock
 }
 
 
-int skipjack_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize)
+int skipjack_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key, uint8_t keysize)
 {
+    // 8 byte blocks only
+    if (blockSize != BLOCK_SIZE) {
+        return 0;
+    }
+
     int i = 0;
     skipjack_context_t *skipjack_context = (skipjack_context_t *)context->context;
     uint8_t *skey = skipjack_context->skey;

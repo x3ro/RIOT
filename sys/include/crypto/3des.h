@@ -93,18 +93,6 @@ int tripledes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t* 
                    uint8_t keySize);
 
 /**
- * @brief   updates the used key for this context after initialization has
- *          already been done
- *
- * @param   context   the cipher_context_t-struct to save the updated key in
- * @param   key       a pointer to the key
- * @param   keysize   the length of the key
- *
- * @return  0 if initialized blocksize is wrong, 1 else
- */
-int tripledes_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize);
-
-/**
  * @brief   encrypts one plain-block and saves the result in crypt.
  *          encrypts one blocksize long block of plaintext pointed to by
  *          plain to one blocksize long block of ciphertext which will be
