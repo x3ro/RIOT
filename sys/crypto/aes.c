@@ -720,7 +720,7 @@ static const u32 rcon[] = {
 };
 
 
-int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int aes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
              uint8_t keySize)
 {
     //printf("%-40s: Entry\r\n", __FUNCTION__);
@@ -748,7 +748,7 @@ int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
     return 1;
 }
 
-int aes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
+int aes_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize)
 {
     return aes_init(context, AES_BLOCK_SIZE, key, keysize);
 }
@@ -943,7 +943,7 @@ static int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
  * Encrypt a single block
  * in and out can overlap
  */
-int aes_encrypt(cipher_context_t *context, uint8_t *plainBlock,
+int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
                 uint8_t *cipherBlock)
 {
     //setup AES_KEY
@@ -1202,7 +1202,7 @@ int aes_encrypt(cipher_context_t *context, uint8_t *plainBlock,
  * Decrypt a single block
  * in and out can overlap
  */
-int aes_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
+int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                 uint8_t *plainBlock)
 {
     //setup AES_KEY

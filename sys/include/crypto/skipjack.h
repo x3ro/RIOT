@@ -109,7 +109,7 @@ typedef struct {
  * @return  Whether initialization was successful. The command may be
  *          unsuccessful if the key size or blockSize are not valid.
  */
-int skipjack_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int skipjack_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
                   uint8_t keySize);
 
 /**
@@ -123,7 +123,7 @@ int skipjack_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
  * @return  Whether the encryption was successful. Possible failure reasons
  *          include not calling init().
  */
-int skipjack_encrypt(cipher_context_t *context, uint8_t *plainBlock,
+int skipjack_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
                      uint8_t *cipherBlock);
 
 /**
@@ -137,7 +137,7 @@ int skipjack_encrypt(cipher_context_t *context, uint8_t *plainBlock,
  * @return  Whether the decryption was successful. Possible failure reasons
  *         include not calling init()
  */
-int skipjack_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
+int skipjack_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                      uint8_t *plainBlock);
 
 /**
@@ -150,7 +150,7 @@ int skipjack_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
  *
  * @return SUCCESS
  */
-int skipjack_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
+int skipjack_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize);
 
 
 /**

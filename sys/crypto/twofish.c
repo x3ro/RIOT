@@ -32,7 +32,7 @@
 
 
 //prototype
-static int twofish_setup_key(twofish_context_t *ctx, uint8_t *key, uint8_t keylen);
+static int twofish_setup_key(twofish_context_t *ctx, const uint8_t *key, uint8_t keylen);
 
 // twofish interface
 cipher_interface_t twofish_interface = {
@@ -473,7 +473,7 @@ static uint8_t calc_sb_tbl[512] = {
 
 
 
-int twofish_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int twofish_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
                  uint8_t keySize)
 {
     //printf("%-40s: Entry\r\n", __FUNCTION__);
@@ -501,7 +501,7 @@ int twofish_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
     return 1;
 }
 
-int twofish_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
+int twofish_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize)
 {
     return twofish_init(context, TWOFISH_BLOCK_SIZE, key, keysize);
 }
@@ -517,7 +517,7 @@ int twofish_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
  *
  * @return  -1 if invalid key-length, 0 otherwise
  */
-static int twofish_setup_key(twofish_context_t *ctx, uint8_t *key, uint8_t keylen)
+static int twofish_setup_key(twofish_context_t *ctx, const uint8_t *key, uint8_t keylen)
 {
     int i, j, k;
 
@@ -657,7 +657,7 @@ static int twofish_setup_key(twofish_context_t *ctx, uint8_t *key, uint8_t keyle
 
 
 /* Encrypt one block.  in and out may be the same. */
-int twofish_encrypt(cipher_context_t *context, uint8_t *in, uint8_t *out)
+int twofish_encrypt(const cipher_context_t *context, const uint8_t *in, uint8_t *out)
 {
     int res;
     //setup the twofish-specific context
@@ -715,7 +715,7 @@ int twofish_encrypt(cipher_context_t *context, uint8_t *in, uint8_t *out)
 }
 
 /* Decrypt one block.  in and out may be the same. */
-int twofish_decrypt(cipher_context_t *context, uint8_t *in, uint8_t *out)
+int twofish_decrypt(const cipher_context_t *context, const uint8_t *in, uint8_t *out)
 {
     int res;
     twofish_context_t *ctx = malloc(sizeof(twofish_context_t));

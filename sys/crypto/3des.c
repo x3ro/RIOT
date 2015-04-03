@@ -247,7 +247,7 @@ static const uint32_t SP8[64] = {
 };
 
 
-int tripledes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int tripledes_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
                   uint8_t keySize)
 {
     uint8_t i;
@@ -275,13 +275,13 @@ int tripledes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
     return 1;
 }
 
-int tripledes_set_key(cipher_context_t *context, uint8_t *key,
+int tripledes_set_key(cipher_context_t *context, const uint8_t *key,
                                 uint8_t keysize)
 {
     return tripledes_init(context, THREEDES_BLOCK_SIZE, key, keysize);
 }
 
-int tripledes_encrypt(cipher_context_t *context, uint8_t *plain, uint8_t *crypt)
+int tripledes_encrypt(const cipher_context_t *context, const uint8_t *plain, uint8_t *crypt)
 {
     int res;
     struct des3_key_s *key = malloc(sizeof(des3_key_s));
@@ -316,7 +316,7 @@ int tripledes_encrypt(cipher_context_t *context, uint8_t *plain, uint8_t *crypt)
 }
 
 
-int tripledes_decrypt(cipher_context_t *context, uint8_t *crypt, uint8_t *plain)
+int tripledes_decrypt(const cipher_context_t *context, const uint8_t *crypt, uint8_t *plain)
 {
     int res;
     struct des3_key_s *key = malloc(sizeof(des3_key_s));
