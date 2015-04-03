@@ -48,7 +48,6 @@ extern "C" {
 /**
  * error codes
  */
-#define CIPHER_ERR_UNSUPPORTED_CIHPER -2
 #define CIPHER_ERR_INVALID_KEY_SIZE   -3
 #define CIPHER_ERR_INVALID_LENGTH     -4
 #define CIPHER_ERR_ENC_FAILED         -5
