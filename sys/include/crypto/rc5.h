@@ -79,7 +79,7 @@ typedef struct {
 *           unsuccessful if the key size or blockSize are not valid for the
 *           given cipher implementation.
 */
-int rc5_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int rc5_init(cipher_context_t *context, uint8_t blockSize, const uint8_t *key,
              uint8_t keySize);
 
 /**
@@ -99,7 +99,7 @@ int rc5_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
  * @return  Whether the encryption was successful. Possible failure reasons
  *          include not calling init().
  */
-int rc5_encrypt(cipher_context_t *context, uint8_t *plain_block, uint8_t *cipher_block);
+int rc5_encrypt(const cipher_context_t *context, const uint8_t *plain_block, uint8_t *cipher_block);
 
 /**
  * @brief   Decrypts a single block (of blockSize) using the key and the
@@ -112,7 +112,7 @@ int rc5_encrypt(cipher_context_t *context, uint8_t *plain_block, uint8_t *cipher
  * @return  Whether the decryption was successful. Possible failure reasons
  *          include not calling init() or an unimplimented decrypt function.
  */
-int rc5_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
+int rc5_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                 uint8_t *plainBlock);
 
 /**
@@ -125,7 +125,7 @@ int rc5_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
  *
  * @return  SUCCESS
  */
-int rc5_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
+int rc5_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize);
 
 /**
  * Interface to access the functions

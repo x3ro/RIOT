@@ -84,7 +84,7 @@ typedef struct {
  *
  * @return  0 if blocksize doesn't match else 1
  */
-int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int aes_init(cipher_context_t *context, const uint8_t blockSize, const uint8_t *key,
              uint8_t keySize);
 
 /**
@@ -98,7 +98,7 @@ int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
  *
  * @return  0 if initialized blocksize is wrong, 1 else
  */
-int aes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
+int aes_set_key(cipher_context_t *context, const uint8_t *key, uint8_t keysize);
 
 /**
  * @brief   encrypts one plainBlock-block and saves the result in cipherblock.
@@ -115,7 +115,7 @@ int aes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
  *
  * @return  1 or result of aes_set_encrypt_key if it failed
  */
-int aes_encrypt(cipher_context_t *context, uint8_t *plain_block,
+int aes_encrypt(const cipher_context_t *context, const uint8_t *plain_block,
                 uint8_t *cipher_block);
 
 /**
@@ -134,7 +134,7 @@ int aes_encrypt(cipher_context_t *context, uint8_t *plain_block,
  * @return  1 or negative value if cipher key cannot be expanded into
  *          decryption key schedule
  */
-int aes_decrypt(cipher_context_t *context, uint8_t *cipher_block,
+int aes_decrypt(const cipher_context_t *context, const uint8_t *cipher_block,
                 uint8_t *plain_block);
 
 /**
