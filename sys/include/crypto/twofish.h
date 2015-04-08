@@ -225,19 +225,7 @@ typedef struct {
  * @return  Whether initialization was successful. The command may be
  *         unsuccessful if the key size or blockSize are not valid.
  */
-int twofish_init(cipher_context_t *context, uint8_t block_size, uint8_t *key, uint8_t key_size);
-
-/**
- * @brief   Sets up the context to use the passed key for usage with TwoFish
- *          Performs the key expansion on the real secret.
- *
- * @param   context     the CipherContext-struct to save the updated key in
- * @param   key         a pointer to the secret key
- * @param   key_size    the length of the secret key
- *
- * @return SUCCESS
- */
-int twofish_set_key(cipher_context_t *context, uint8_t *key, uint8_t key_size);
+int twofish_init(cipher_context_t *context, const uint8_t *key, uint8_t key_size);
 
 /**
  * @brief   Encrypts a single block (of blockSize) using the passed context.
@@ -250,7 +238,7 @@ int twofish_set_key(cipher_context_t *context, uint8_t *key, uint8_t key_size);
  * @return  Whether the encryption was successful. Possible failure reasons
  *          include not calling init().
  */
-int twofish_encrypt(cipher_context_t *context, uint8_t *in, uint8_t *out);
+int twofish_encrypt(const cipher_context_t *context, const uint8_t *in, uint8_t *out);
 
 /**
  * @brief   Decrypts a single block (of blockSize) using the passed context.
@@ -263,13 +251,7 @@ int twofish_encrypt(cipher_context_t *context, uint8_t *in, uint8_t *out);
  * @return  Whether the decryption was successful. Possible failure reasons
  *          include not calling init()
  */
-int twofish_decrypt(cipher_context_t *context, uint8_t *in, uint8_t *out);
-
-/**
- * Interface to access the functions
- *
- */
-extern cipher_interface_t twofish_interface;
+int twofish_decrypt(const cipher_context_t *context, const uint8_t *in, uint8_t *out);
 
 #ifdef __cplusplus
 }

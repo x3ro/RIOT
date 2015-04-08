@@ -36,29 +36,17 @@
 /**
  * @brief Interface to the rc5 cipher
  */
-cipher_interface_t rc5_interface = {
+static const cipher_interface_t rc5_interface = {
     BLOCK_SIZE,
     CIPHERS_MAX_KEY_SIZE,
     rc5_init,
     rc5_encrypt,
-    rc5_decrypt,
-    rc5_set_key
+    rc5_decrypt
 };
+const cipher_id_t CIPHER_RC5 = &rc5_interface;
 
 
-int rc5_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key, uint8_t keySize)
-{
-    (void)keySize;
-    // 8 byte blocks only
-    if (blockSize != BLOCK_SIZE) {
-        return 0;
-    }
-
-    return rc5_set_key(context, key, 0);
-}
-
-
-int rc5_encrypt(cipher_context_t *context, uint8_t *block,
+int rc5_encrypt(const cipher_context_t *context, const uint8_t *block,
                 uint8_t *cipherBlock)
 {
     register uint32_t l;
@@ -91,7 +79,7 @@ int rc5_encrypt(cipher_context_t *context, uint8_t *block,
     return 1;
 }
 
-int rc5_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
+int rc5_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                 uint8_t *plainBlock)
 {
     register uint32_t l;
@@ -125,9 +113,9 @@ int rc5_decrypt(cipher_context_t *context, uint8_t *cipherBlock,
     return 1;
 }
 
-int rc5_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize)
+int rc5_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize)
 {
-    (void)keysize;
+    (void) keySize;
     uint32_t *L, l, A, B, *S;
     uint8_t ii, jj;
     int8_t i;

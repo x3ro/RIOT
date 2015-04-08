@@ -40,16 +40,16 @@ static void test_crypto_tripledes_encrypt(void)
 {
 	cipher_context_t ctx;
 	int err;
-	uint8_t data[16];
+	uint8_t data[THREEDES_BLOCK_SIZE];
 
-	err = tripledes_init(&ctx, THREEDES_BLOCK_SIZE, TEST_0_KEY, 16);
+	err = tripledes_init(&ctx, TEST_0_KEY, 16);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = tripledes_encrypt(&ctx, TEST_0_INP, data);
 	TEST_ASSERT_EQUAL_INT(1, err);
 	TEST_ASSERT_MESSAGE(1 == compare(TEST_0_ENC, data, THREEDES_BLOCK_SIZE), "wrong ciphertext");
 
-	err = tripledes_init(&ctx, THREEDES_BLOCK_SIZE, TEST_1_KEY, 16);
+	err = tripledes_init(&ctx, TEST_1_KEY, 16);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = tripledes_encrypt(&ctx, TEST_1_INP, data);
@@ -62,16 +62,16 @@ static void test_crypto_tripledes_decrypt(void)
 
 	cipher_context_t ctx;
 	int err;
-	uint8_t data[16];
+	uint8_t data[THREEDES_BLOCK_SIZE];
 
-	err = tripledes_init(&ctx, THREEDES_BLOCK_SIZE, TEST_0_KEY, 16);
+	err = tripledes_init(&ctx, TEST_0_KEY, 16);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = tripledes_decrypt(&ctx, TEST_0_ENC, data);
 	TEST_ASSERT_EQUAL_INT(1, err);
 	TEST_ASSERT_MESSAGE(1 == compare(TEST_0_INP, data, THREEDES_BLOCK_SIZE), "wrong plaintext");
 
-	err = tripledes_init(&ctx, THREEDES_BLOCK_SIZE, TEST_1_KEY, 16);
+	err = tripledes_init(&ctx, TEST_1_KEY, 16);
 	TEST_ASSERT_EQUAL_INT(1, err);
 
 	err = tripledes_decrypt(&ctx, TEST_1_ENC, data);

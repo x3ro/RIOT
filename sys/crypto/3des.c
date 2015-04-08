@@ -44,14 +44,15 @@
 /**
  * @brief Interface to the 3DES cipher
  */
-cipher_interface_t tripledes_interface = {
+static const cipher_interface_t tripledes_interface = {
     THREEDES_BLOCK_SIZE,
     THREEDES_MAX_KEY_SIZE,
     tripledes_init,
     tripledes_encrypt,
-    tripledes_decrypt,
-    tripledes_set_key
+    tripledes_decrypt
 };
+const cipher_id_t CIPHER_3DES = &tripledes_interface;
+
 
 /**
  * @brief struct for the 3DES key expansion
@@ -247,17 +248,10 @@ static const uint32_t SP8[64] = {
 };
 
 
-int tripledes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
+int tripledes_init(cipher_context_t *context, const uint8_t *key,
                   uint8_t keySize)
 {
     uint8_t i;
-
-    //printf("%-40s: Entry\r\n", __FUNCTION__);
-    // 16 byte blocks only
-    if (blockSize != THREEDES_BLOCK_SIZE) {
-        printf("%-40s: blockSize != 3DES_BLOCK_SIZE...\r\n", __FUNCTION__);
-        return 0;
-    }
 
     //key must be at least 24 Bytes long
     if (keySize < 24) {
@@ -275,13 +269,7 @@ int tripledes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
     return 1;
 }
 
-int tripledes_set_key(cipher_context_t *context, uint8_t *key,
-                                uint8_t keysize)
-{
-    return tripledes_init(context, THREEDES_BLOCK_SIZE, key, keysize);
-}
-
-int tripledes_encrypt(cipher_context_t *context, uint8_t *plain, uint8_t *crypt)
+int tripledes_encrypt(const cipher_context_t *context, const uint8_t *plain, uint8_t *crypt)
 {
     int res;
     struct des3_key_s *key = malloc(sizeof(des3_key_s));
@@ -316,7 +304,7 @@ int tripledes_encrypt(cipher_context_t *context, uint8_t *plain, uint8_t *crypt)
 }
 
 
-int tripledes_decrypt(cipher_context_t *context, uint8_t *crypt, uint8_t *plain)
+int tripledes_decrypt(const cipher_context_t *context, const uint8_t *crypt, uint8_t *plain)
 {
     int res;
     struct des3_key_s *key = malloc(sizeof(des3_key_s));

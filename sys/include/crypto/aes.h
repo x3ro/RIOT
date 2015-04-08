@@ -84,21 +84,7 @@ typedef struct {
  *
  * @return  0 if blocksize doesn't match else 1
  */
-int aes_init(cipher_context_t *context, uint8_t blockSize, uint8_t *key,
-             uint8_t keySize);
-
-/**
- * @brief   updates the used key for this context after initialization has
- *          already been done
- *
- * @param       context   the cipher_context_t-struct to save the updated key
- *                        in
- * @param       key       a pointer to the key
- * @param       keysize   the length of the key
- *
- * @return  0 if initialized blocksize is wrong, 1 else
- */
-int aes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
+int aes_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize);
 
 /**
  * @brief   encrypts one plainBlock-block and saves the result in cipherblock.
@@ -115,7 +101,7 @@ int aes_set_key(cipher_context_t *context, uint8_t *key, uint8_t keysize);
  *
  * @return  1 or result of aes_set_encrypt_key if it failed
  */
-int aes_encrypt(cipher_context_t *context, uint8_t *plain_block,
+int aes_encrypt(const cipher_context_t *context, const uint8_t *plain_block,
                 uint8_t *cipher_block);
 
 /**
@@ -134,14 +120,8 @@ int aes_encrypt(cipher_context_t *context, uint8_t *plain_block,
  * @return  1 or negative value if cipher key cannot be expanded into
  *          decryption key schedule
  */
-int aes_decrypt(cipher_context_t *context, uint8_t *cipher_block,
+int aes_decrypt(const cipher_context_t *context, const uint8_t *cipher_block,
                 uint8_t *plain_block);
-
-/**
-  * Interface to access the functions
-  *
-  */
-extern  cipher_interface_t aes_inerface;
 
 #ifdef __cplusplus
 }

@@ -48,7 +48,6 @@ extern "C" {
 /**
  * error codes
  */
-#define CIPHER_ERR_UNSUPPORTED_CIHPER -2
 #define CIPHER_ERR_INVALID_KEY_SIZE   -3
 #define CIPHER_ERR_INVALID_LENGTH     -4
 #define CIPHER_ERR_ENC_FAILED         -5
@@ -90,50 +89,25 @@ typedef struct cipher_interface_st {
     uint8_t max_key_size;
 
     /** the init function */
-    int (*init)(cipher_context_t* ctx, uint8_t block_size, uint8_t* key,
-                uint8_t key_size);
+    int (*init)(cipher_context_t* ctx, const uint8_t* key, uint8_t key_size);
 
     /** the encrypt function */
-    int (*encrypt)(cipher_context_t* ctx, uint8_t* plain_block,
+    int (*encrypt)(const cipher_context_t* ctx, const uint8_t* plain_block,
                    uint8_t* cipher_block);
 
     /** the decrypt function */
-    int (*decrypt)(cipher_context_t* ctx, uint8_t* cipher_block,
+    int (*decrypt)(const cipher_context_t* ctx, const uint8_t* cipher_block,
                    uint8_t* plain_block);
-
-    /** the set_key function */
-    int (*set_key)(cipher_context_t* ctx, uint8_t* key, uint8_t key_size);
 } cipher_interface_t;
 
 
-/**
- * @brief   Numerical IDs for each cipher
- */
-typedef enum {
-    CIPHER_UNKNOWN,
-    CIPHER_NULL,
-    CIPHER_RC5,
-    CIPHER_3DES,
-    CIPHER_AES_128,
-    CIPHER_TWOFISH,
-    CIPHER_SKIPJACK
-} cipher_id_t;
+typedef const cipher_interface_t *cipher_id_t;
 
-/**
- * @brief   cipher entry
- */
-typedef struct cipher_entry_st {
-    const char* name;
-    cipher_id_t id;
-    cipher_interface_t* interface;
-    uint8_t block_size;
-} cipher_entry_t;
-
-
-/**
- * @brief   list of all supported ciphers
- */
-extern const cipher_entry_t cipher_list[];
+extern const cipher_id_t CIPHER_RC5;
+extern const cipher_id_t CIPHER_3DES;
+extern const cipher_id_t CIPHER_AES_128;
+extern const cipher_id_t CIPHER_TWOFISH;
+extern const cipher_id_t CIPHER_SKIPJACK;
 
 
 /**
@@ -141,7 +115,7 @@ extern const cipher_entry_t cipher_list[];
  *        contains the cipher interface and the context
  */
 typedef struct {
-    cipher_interface_t* interface;
+    const cipher_interface_t* interface;
     cipher_context_t context;
 } cipher_t;
 
@@ -154,18 +128,8 @@ typedef struct {
  * @param key        encryption key to use
  * @param len        length of the encryption key
  */
-int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, uint8_t* key,
+int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, const uint8_t* key,
                 uint8_t key_size);
-
-
-/**
- * @brief set new encryption key for a cipher
- *
- * @param cipher     cipher struct to use
- * @param key        new encryption key
- * @param len        length of the new encryption key
- */
-int cipher_set_key(cipher_t* cipher, uint8_t* key, uint8_t key_size);
 
 
 /**
@@ -177,7 +141,7 @@ int cipher_set_key(cipher_t* cipher, uint8_t* key, uint8_t key_size);
  * @param output     pointer to allocated memory for encrypted data. It has to
  *                   be of size BLOCK_SIZE
  */
-int cipher_encrypt(cipher_t* cipher, uint8_t* input, uint8_t* output);
+int cipher_encrypt(const cipher_t* cipher, const uint8_t* input, uint8_t* output);
 
 
 /**
@@ -189,7 +153,7 @@ int cipher_encrypt(cipher_t* cipher, uint8_t* input, uint8_t* output);
  * @param output     pointer to allocated memory for decrypted data. It has to
  *                   be of size BLOCK_SIZE
  */
-int cipher_decrypt(cipher_t* cipher, uint8_t* input, uint8_t* output);
+int cipher_decrypt(const cipher_t* cipher, const uint8_t* input, uint8_t* output);
 
 
 /**
@@ -198,7 +162,7 @@ int cipher_decrypt(cipher_t* cipher, uint8_t* input, uint8_t* output);
  *
  * @param cipher     Already initialized cipher struct
  */
-int cipher_get_block_size(cipher_t* cipher);
+int cipher_get_block_size(const cipher_t* cipher);
 
 
 #ifdef __cplusplus
