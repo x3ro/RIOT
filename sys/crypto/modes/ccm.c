@@ -24,6 +24,15 @@
 #include "crypto/modes/ctr.h"
 #include "crypto/modes/ccm.h"
 
+static inline int min(int a, int b)
+{
+    if (a < b) {
+        return a;
+    }
+    else {
+        return b;
+    }
+}
 
 int ccm_compute_cbc_mac(cipher_t* cipher, uint8_t iv[16],
                         uint8_t* input, size_t length, uint8_t* mac)
@@ -165,7 +174,7 @@ int cipher_encrypt_ccm(cipher_t* cipher, uint8_t* auth_data, uint32_t auth_data_
     }
 
     /* Encrypt message in counter mode  */
-    block_inc_ctr(nonce_counter, block_size - nonce_len);
+    crypto_block_inc_ctr(nonce_counter, block_size - nonce_len);
     len = cipher_encrypt_ctr(cipher, nonce_counter, nonce_len, input,
                              input_len, output);
     if (len < 0) {
@@ -214,7 +223,7 @@ int cipher_decrypt_ccm(cipher_t* cipher, uint8_t* auth_data,
 
     /* Decrypt message in counter mode */
     plain_len = input_len - mac_length;
-    block_inc_ctr(nonce_counter, block_size - nonce_len);
+    crypto_block_inc_ctr(nonce_counter, block_size - nonce_len);
     len = cipher_encrypt_ctr(cipher, nonce_counter, nonce_len, input,
                              plain_len, plain);
     if (len < 0) {
@@ -239,7 +248,7 @@ int cipher_decrypt_ccm(cipher_t* cipher, uint8_t* auth_data,
         mac_recv[i] = input[len + i] ^ stream_block[i];
     }
 
-    if (equals(mac_recv, mac, mac_length) != 1) {
+    if (!crypto_equals(mac_recv, mac, mac_length)) {
         return CCM_ERR_INVALID_CBC_MAC;
     }
 

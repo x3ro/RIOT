@@ -43,7 +43,7 @@ int cipher_encrypt_ctr(cipher_t* cipher, uint8_t nonce_counter[16],
         }
 
         offset += block_size_input;
-        block_inc_ctr(nonce_counter, block_size - nonce_len);
+        crypto_block_inc_ctr(nonce_counter, block_size - nonce_len);
     } while (offset < length);
 
     return offset;
