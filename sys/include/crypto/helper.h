@@ -26,8 +26,6 @@
 extern "C" {
 #endif
 
-#define min(a,b) ((a) < (b) ? (a) : (b))
-
 /**
  * @brief Increment a counter encoded in an 16 octet block. The counter is
  *        encoded from the least significant bit in the following form:
@@ -36,28 +34,19 @@ extern "C" {
  * @param block     encoded block
  * @param L         length of counter
  */
-static inline void block_inc_ctr(uint8_t block[16], uint8_t L)
-{
-    for (uint8_t i = 15; i > 15 - L && !++block[i]; --i)
-        ;
-}
+void crypto_block_inc_ctr(uint8_t block[16], int L);
 
 
 /**
- * @brief   Compares two block of same size
+ * @brief   Compares two blocks of same size in deterministic time.
  *
  * @param a     block a
  * @param b     block b
  * @param len   size of both blocks
+ *
+ * @returns 0 iff the blocks are non-equal.
  */
-static inline int equals(uint8_t* a, uint8_t* b, size_t len)
-{
-    int result = 1;
-    while (len-- && (result &= *a++ == *b++))
-        ;
-
-    return result;
-}
+int crypto_equals(uint8_t *a, uint8_t *b, size_t len);
 
 #ifdef __cplusplus
 }
