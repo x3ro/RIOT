@@ -18,8 +18,8 @@
 * @}
 */
 
+#include "crypto/helper.h"
 #include "crypto/modes/ctr.h"
-#include "crypto/modes/helper.h"
 
 int cipher_encrypt_ctr(cipher_t* cipher, uint8_t nonce_counter[16],
                        uint8_t nonce_len, uint8_t* input, size_t length,

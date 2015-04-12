@@ -20,8 +20,8 @@
 
 #include <string.h>
 #include "debug.h"
+#include "crypto/helper.h"
 #include "crypto/modes/ctr.h"
-#include "crypto/modes/helper.h"
 #include "crypto/modes/ccm.h"
 
 
