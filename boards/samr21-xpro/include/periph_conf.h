@@ -14,6 +14,7 @@
  * @brief       Peripheral MCU configuration for the Atmel SAM R21 Xplained Pro board
  *
  * @author      Thomas Eichinger <thomas.eichinger@fu-berlin.de>
+ * @author      Peter Kietzmann <peter.kietzmann@haw-hamburg.de>
  */
 
 #ifndef __PERIPH_CONF_H
@@ -49,9 +50,9 @@ extern "C" {
  * @name UART configuration
  * @{
  */
-#define UART_NUMOF          (1U)
+#define UART_NUMOF          (2U)
 #define UART_0_EN           1
-#define UART_1_EN           0
+#define UART_1_EN           1
 #define UART_2_EN           0
 #define UART_3_EN           0
 #define UART_IRQ_PRIO       1
@@ -69,12 +70,15 @@ extern "C" {
 
 
 /* UART 1 device configuration */
-#define UART_1_DEV
-#define UART_1_IRQ
-#define UART_1_ISR
+#define UART_1_DEV          SERCOM5->USART
+#define UART_1_IRQ          SERCOM5_IRQn
+#define UART_1_ISR          isr_sercom5
 /* UART 1 pin configuration */
-#define UART_1_PORT
-#define UART_1_PINS
+#define UART_1_PORT         (PORT->Group[0])
+#define UART_1_TX_PIN       (22)
+#define UART_1_RX_PIN       (23)
+#define UART_1_PINS         (PORT_PA22 | PORT_PA23)
+#define UART_1_REF_F        (8000000UL)
 /** @} */
 
 
@@ -245,8 +249,6 @@ extern "C" {
 #define GPIO_15_EXTINT
 /** @} */
 
-/** @} */
-
 /**
  * @ ADC Configuration
  * @{
@@ -258,25 +260,28 @@ extern "C" {
 /* ADC 0 device configuration */
 #define ADC_0_DEV                          ADC
 #define ADC_0_PORT                         (PORT->Group[0])
-#define ADC_0_IRQ                          ADC_IRQn     
+
+#define ADC_0_IRQ                          ADC_IRQn
 #define ADC_0_CHANNELS                     8
 /* ADC 0 Default values */
 #define ADC_0_CLK_SOURCE                   0 /* GCLK_GENERATOR_0 */
 #define ADC_0_PRESCALER                    ADC_CTRLB_PRESCALER_DIV4
 #define ADC_0_WINDOW_MODE                  ADC_WINCTRL_WINMODE_DISABLE
 #define ADC_0_WINDOW_LOWER                 0
-#define ADC_0_WINDOW_HIGHER                0     
+#define ADC_0_WINDOW_HIGHER                0
 
-#define ADC_0_CORRECTION_EN                0 /* disabled */
-#define ADC_0_GAIN_CORRECTION              ADC_GAINCORR_RESETVALUE
-#define ADC_0_OFFSET_CORRECTION            ADC_OFFSETCORR_RESETVALUE
-#define ADC_0_SAMPLE_LENGTH                0
+#define SAMPLE_0_V_OFFSET                  90
+#define SAMPLE_REF_V                       2355 //2048 -> 1; 4095/3620 -> 2355
+#define ADC_0_CORRECTION_EN                1 /* enabled */
+#define ADC_0_OFFSET_CORRECTION            ADC_OFFSETCORR_OFFSETCORR(SAMPLE_0_V_OFFSET) /* refert to datasheet p.811 for calculation */
+#define ADC_0_GAIN_CORRECTION              ADC_GAINCORR_GAINCORR(SAMPLE_REF_V)
+#define ADC_0_SAMPLE_LENGTH                0 /* disabled */
 #define ADC_0_PIN_SCAN_OFFSET_START        0 /* disabled */
-#define ADC_0_PIN_SCAN_INPUT_TO_SCAN       0 /* disabled */    
+#define ADC_0_PIN_SCAN_INPUT_TO_SCAN       0 /* disabled */
 #define ADC_0_LEFT_ADJUST                  0 /* disabled */
 #define ADC_0_DIFFERENTIAL_MODE            0 /* disabled */
 #define ADC_0_FREE_RUNNING                 0 /* disabled */
-#define ADC_0_EVENT_ACTION                 0 /* disabled */    
+#define ADC_0_EVENT_ACTION                 0 /* disabled */
 #define ADC_0_RUN_IN_STANDBY               0 /* disabled */
 
 /* ADC 0 Module Status flags */
@@ -287,7 +292,7 @@ extern "C" {
 /* ADC 0 Positive Input Pins */
 #define ADC_0_POS_INPUT                    ADC_INPUTCTRL_MUXPOS_PIN6
 
-/* ADC 0 Negative Input Pins */     
+/* ADC 0 Negative Input Pins */
 #define ADC_0_NEG_INPUT                    ADC_INPUTCTRL_MUXNEG_GND
 
 /* ADC 0 Gain Factor */
@@ -299,18 +304,18 @@ extern "C" {
 /* Use this to define the value used */
 #define ADC_0_GAIN_FACTOR_DEFAULT          ADC_0_GAIN_FACTOR_1X
 
-/* ADC 0 Resolutions */    
+/* ADC 0 Resolutions */
 #define ADC_0_RES_8BIT                     ADC_CTRLB_RESSEL_8BIT
 #define ADC_0_RES_10BIT                    ADC_CTRLB_RESSEL_10BIT
 #define ADC_0_RES_12BIT                    ADC_CTRLB_RESSEL_12BIT
-#define ADC_0_RES_16BIT                    ADC_CTRLB_RESSEL_16BIT 
+#define ADC_0_RES_16BIT                    ADC_CTRLB_RESSEL_16BIT
 
 /* ADC 0 Voltage reference */
 #define ADC_0_REF_INT_1V                   ADC_REFCTRL_REFSEL_INT1V
 #define ADC_0_REF_EXT_B                    ADC_REFCTRL_REFSEL_AREFB
-#define ADC_0_REF_COM_EN                   0
-/* Use this to define the value used */ 
-#define ADC_0_REF_DEFAULT                  ADC_0_REF_INT_1V
+#define ADC_0_REF_COM_EN                   1
+/* Use this to define the value used */
+#define ADC_0_REF_DEFAULT                  ADC_0_REF_EXT_B
 
 /* ADC 0 ACCUMULATE */
 #define ADC_0_ACCUM_DISABLE                ADC_AVGCTRL_SAMPLENUM_1
@@ -325,7 +330,7 @@ extern "C" {
 #define ADC_0_ACCUM_512                    ADC_AVGCTRL_SAMPLENUM_512
 #define ADC_0_ACCUM_1024                   ADC_AVGCTRL_SAMPLENUM_1024
 /* Use this to define the value used */
-#define ADC_0_ACCUM_DEFAULT                ADC_0_ACCUM_DISABLE 
+#define ADC_0_ACCUM_DEFAULT                ADC_0_ACCUM_DISABLE
 
 /* ADC 0 DEVIDE RESULT */
 #define ADC_0_DIV_RES_DISABLE              0
@@ -337,7 +342,7 @@ extern "C" {
 #define ADC_0_DIV_RES_64                   6
 #define ADC_0_DIV_RES_128                  7
 /* Use this to define the value used */
-#define ADC_0_DIV_RES_DEFAULT             ADC_0_DIV_RES_DISABLE 
+#define ADC_0_DIV_RES_DEFAULT             ADC_0_DIV_RES_DISABLE
 /** @} */
 
 #ifdef __cplusplus
