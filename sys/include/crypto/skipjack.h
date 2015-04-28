@@ -87,13 +87,8 @@ extern "C" {
     counter--;                               \
     skey -= 4; }
 
-/**
- * @brief The cipher_context_t adapted for SkipJack
- */
-typedef struct {
-    /** 2 times keysize. makes unrolling keystream easier / efficient */
-    uint8_t skey [ 20 ];
-} skipjack_context_t;
+/** 2 times keysize. makes unrolling keystream easier / efficient */
+#define SKIPJACK_CONTEXT_SIZE 20
 
 /**
  * @brief   Initialize the SkipJack-BlockCipher context.
