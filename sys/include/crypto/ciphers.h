@@ -35,7 +35,6 @@ extern "C" {
  *
  * */
 #define AES
-// #define RC5
 // #define THREEDES
 // #define AES
 // #define TWOFISH
@@ -50,15 +49,12 @@ extern "C" {
  * Context sizes needed for the different ciphers.
  * Always order by number of bytes descending!!! <br><br>
  *
- * rc5          needs 104 bytes                           <br>
  * threedes     needs 24  bytes                           <br>
  * aes          needs CIPHERS_MAX_KEY_SIZE bytes          <br>
  * twofish      needs CIPHERS_MAX_KEY_SIZE bytes          <br>
  * skipjack     needs 20 bytes
  */
-#if defined(RC5)
-    #define CIPHER_MAX_CONTEXT_SIZE 104
-#elif defined(THREEDES)
+#if defined(THREEDES)
     #define CIPHER_MAX_CONTEXT_SIZE 24
 #elif defined(AES)
     #define CIPHER_MAX_CONTEXT_SIZE CIPHERS_MAX_KEY_SIZE
@@ -111,7 +107,6 @@ typedef struct cipher_interface_st {
 
 typedef const cipher_interface_t *cipher_id_t;
 
-extern const cipher_id_t CIPHER_RC5;
 extern const cipher_id_t CIPHER_3DES;
 extern const cipher_id_t CIPHER_AES_128;
 extern const cipher_id_t CIPHER_TWOFISH;

@@ -461,7 +461,6 @@ System libraries
 + crypto libraries
   + 3des
   + aes
-  + rc5
   + skipjack
   + twofish
 + BSD-like package system for easy integration of external libraries

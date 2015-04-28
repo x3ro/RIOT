@@ -18,7 +18,6 @@
  *  * 3DES
  *  * Twofish
  *  * Skipjack
- *  * RC5
  *  * NULL
  *
  * You can use them directly by adding "crypto" to your USEMODULE-List.
