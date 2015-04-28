@@ -56,12 +56,14 @@ extern "C" {
 
 // 2 * (ROUNDS +1) * 4
 // 2 * 13 * 4 = 104 bytes
+#define RC5_CONTEXT_SIZE (2 * (RC5_ROUNDS + 1))
+
 /**
  * @brief the cipher_context_t adapted for RC5
  */
 typedef struct {
     /** @cond INTERNAL */
-    uint32_t skey [2 * (RC5_ROUNDS + 1)];
+    uint32_t skey [RC5_CONTEXT_SIZE];
     /** @endcond */
 } rc5_context_t;
 

@@ -120,6 +120,13 @@ int rc5_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize)
     uint8_t ii, jj;
     int8_t i;
     uint8_t tmp[8];
+
+    // Make sure that context is large enough. If this is not the case,
+    // you should build with -DRC5.
+    if(CIPHER_MAX_CONTEXT_SIZE < RC5_CONTEXT_SIZE) {
+        return 0;
+    }
+
     rc5_context_t *rc5_context = (rc5_context_t *) context->context;
     S = rc5_context->skey;
 

@@ -34,6 +34,7 @@ extern "C" {
 
 #define TWOFISH_BLOCK_SIZE      16
 #define TWOFISH_KEY_SIZE        16   //only alternative is 32!
+#define TWOFISH_CONTEXT_SIZE    20
 
 /**
  * Macro to perform one column of the RS matrix multiplication.  The

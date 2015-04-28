@@ -321,6 +321,12 @@ int skipjack_init(cipher_context_t *context, const uint8_t *key, uint8_t keysize
 {
     int i = 0;
 
+    // Make sure that context is large enough. If this is not the case,
+    // you should build with -DSKIPJACK.
+    if(CIPHER_MAX_CONTEXT_SIZE < SKIPJACK_CONTEXT_SIZE) {
+        return 0;
+    }
+
     cipher_context_t *skipjack_context = (cipher_context_t *)context->context;
     uint8_t *skey = skipjack_context->context;
 
