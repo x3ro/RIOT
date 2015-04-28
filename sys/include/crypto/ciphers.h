@@ -45,6 +45,31 @@ extern "C" {
 #define CIPHERS_MAX_KEY_SIZE 20
 #define CIPHER_MAX_BLOCK_SIZE 16
 
+
+/**
+ * Context sizes needed for the different ciphers.
+ * Always order by number of bytes descending!!! <br><br>
+ *
+ * rc5          needs 104 bytes                           <br>
+ * threedes     needs 24  bytes                           <br>
+ * aes          needs CIPHERS_MAX_KEY_SIZE bytes          <br>
+ * twofish      needs CIPHERS_MAX_KEY_SIZE bytes          <br>
+ * skipjack     needs 20 bytes
+ */
+#if defined(RC5)
+    #define CIPHER_MAX_CONTEXT_SIZE 104
+#elif defined(THREEDES)
+    #define CIPHER_MAX_CONTEXT_SIZE 24
+#elif defined(AES)
+    #define CIPHER_MAX_CONTEXT_SIZE CIPHERS_MAX_KEY_SIZE
+#elif defined(TWOFISH)
+    #define CIPHER_MAX_CONTEXT_SIZE CIPHERS_MAX_KEY_SIZE
+#elif defined(SKIPJACK)
+    #define CIPHER_MAX_CONTEXT_SIZE 20
+#else
+    #define CIPHER_MAX_CONTEXT_SIZE 0
+#endif
+
 /**
  * error codes
  */
@@ -55,26 +80,9 @@ extern "C" {
 
 /**
  * @brief   the context for cipher-operations
- *          always order by number of bytes descending!!! <br>
- * rc5          needs 104 bytes                           <br>
- * threedes     needs 24  bytes                           <br>
- * aes          needs CIPHERS_MAX_KEY_SIZE bytes          <br>
- * twofish      needs CIPHERS_MAX_KEY_SIZE bytes          <br>
- * skipjack     needs 20 bytes                            <br>
- * identity     needs 1  byte                             <br>
  */
 typedef struct {
-#if defined(RC5)
-    uint8_t context[104];             /**< supports RC5 and lower */
-#elif defined(THREEDES)
-    uint8_t context[24];              /**< supports ThreeDES and lower */
-#elif defined(AES)
-    uint8_t context[CIPHERS_MAX_KEY_SIZE]; /**< supports AES and lower */
-#elif defined(TWOFISH)
-    uint8_t context[CIPHERS_MAX_KEY_SIZE]; /**< supports TwoFish and lower */
-#elif defined(SKIPJACK)
-    uint8_t context[20];              /**< supports SkipJack and lower */
-#endif
+    uint8_t context[CIPHER_MAX_CONTEXT_SIZE];  /**< buffer for cipher operations */
 } cipher_context_t;
 
 
