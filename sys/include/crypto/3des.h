@@ -81,13 +81,12 @@ static const uint32_t bigbyte[24] = {
  *
  * @param   context     the cipher_context_t-struct to save the
  *                      initialization of the cipher in
- * @param   blockSize   the used blocksize - this must match
- *                      the cipher-blocksize
  * @param   key         a pointer to the key
  * @param   keySize     the size of the key
 
  *
- * @return  0 if blocksize doesn't match else 1
+ * @return  Whether initialization was successful. The command may be
+ *          unsuccessful if the key size is not valid.
  */
 int tripledes_init(cipher_context_t *context, const uint8_t* key, uint8_t keySize);
 

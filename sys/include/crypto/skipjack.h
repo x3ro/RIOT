@@ -102,12 +102,11 @@ typedef struct {
  *                      initialization call. It should be passed to future
  *                      invocations of this module which use this particular
  *                      key.
- * @param   blockSize   size of the block in bytes.
  * @param   keySize     key size in bytes
  * @param   key         pointer to the key
  *
  * @return  Whether initialization was successful. The command may be
- *          unsuccessful if the key size or blockSize are not valid.
+ *          unsuccessful if the key size is not valid.
  */
 int skipjack_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize);
 

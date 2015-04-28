@@ -115,8 +115,10 @@ extern const cipher_id_t CIPHER_SKIPJACK;
  *        contains the cipher interface and the context
  */
 typedef struct {
-    const cipher_interface_t* interface;
-    cipher_context_t context;
+    const cipher_interface_t* interface; /**< BlockCipher-Interface for the
+                                              Cipher-Algorithms */
+    cipher_context_t context;            /**< The encryption context (buffer)
+                                              for the algorithm */
 } cipher_t;
 
 
@@ -126,7 +128,7 @@ typedef struct {
  * @param cipher     cipher struct to init (already allocated memory)
  * @param cipher_id  cipher algorithm id
  * @param key        encryption key to use
- * @param len        length of the encryption key
+ * @param key_size   length of the encryption key
  */
 int cipher_init(cipher_t* cipher, cipher_id_t cipher_id, const uint8_t* key,
                 uint8_t key_size);

@@ -38,7 +38,7 @@ extern "C" {
  *                      length of nonce is limited by input_len:
  *                      16 - log_2(input_len)
  * @param input         pointer to input data to encrypt
- * @param input_len     length of the input data
+ * @param length        length of the input data
  * @param output        pointer to allocated memory for encrypted data. It has
  *                      to be of size data_len.
  */
@@ -59,7 +59,7 @@ int cipher_encrypt_ctr(cipher_t* cipher, uint8_t nonce_counter[16],
  *                      length of nonce is limited by input_len:
  *                      16 - log_2(input_len)
  * @param input         pointer to input data to encrypt
- * @param input_len     length of the input data
+ * @param length        length of the input data
  * @param output        pointer to allocated memory for encrypted data. It has
  *                      to be of size data_len.
  */
