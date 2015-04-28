@@ -1,2 +1,3 @@
 USEMODULE += crypto
 USEMODULE += cipher_modes
+CFLAGS += -DTHREEDES
