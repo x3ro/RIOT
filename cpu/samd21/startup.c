@@ -80,37 +80,44 @@ void reset_handler(void)
  */
 void dummy_handler(void)
 {
+    printf("wwwwwwwwtf\n");
     while (1) {asm ("nop");}
 }
 
 
 void isr_nmi(void)
 {
+    printf("wwwwwwwwtf\n");
     while (1) {asm ("nop");}
 }
 
 void isr_mem_manage(void)
 {
+    printf("wwwwwwwwtf\n");
     while (1) {asm ("nop");}
 }
 
 void isr_debug_mon(void)
 {
+    printf("wwwwwwwwtf\n");
     while (1) {asm ("nop");}
 }
 
 void isr_hard_fault(void)
 {
+    printf("wwwwwwwwtf\n");
     while (1) {asm ("nop");}
 }
 
 void isr_bus_fault(void)
 {
+    printf("wwwwwwwwtf\n");
     while (1) {asm ("nop");}
 }
 
 void isr_usage_fault(void)
 {
+    printf("wwwwwwwwtf\n");
     while (1) {asm ("nop");}
 }
 
