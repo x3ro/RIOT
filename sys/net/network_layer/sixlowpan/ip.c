@@ -34,7 +34,7 @@
 
 #include "net_help.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #if ENABLE_DEBUG
 static char addr_str[IPV6_MAX_ADDR_STR_LEN];
 #endif
@@ -73,10 +73,12 @@ int ipv6_send_packet(ipv6_hdr_t *packet, ipv6_addr_t *next_hop)
     uint16_t length = IPV6_HDR_LEN + NTOHS(packet->length);
     ndp_neighbor_cache_t *nce;
 
-    if (next_hop == NULL) {
-        DEBUGF("Got a packet to send to %s\n", ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN, &packet->destaddr));
-        ipv6_net_if_get_best_src_addr(&packet->srcaddr, &packet->destaddr);
-    }
+    if (ip_get_next_hop == NULL) {
+                puts("[EVIL AND DIRTY HACK] We send always multicast (grrrrr)!!!");
+                uint16_t mc = 0xffff;
+                sixlowpan_lowpan_sendto(0, &mc, 2, (uint8_t *) packet, length);
+                return length;
+            }
 
     if (!ipv6_addr_is_multicast(&packet->destaddr)
         && ndp_addr_is_on_link(&packet->destaddr)) {
@@ -107,8 +109,11 @@ int ipv6_send_packet(ipv6_hdr_t *packet, ipv6_addr_t *next_hop)
         if (next_hop == NULL) {
             DEBUG("Trying to find the next hop for %s\n", ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN, &packet->destaddr));
 
-            if (ip_get_next_hop == NULL) {
-                return -1;
+            if (true) {
+                puts("[EVIL AND DIRTY HACK] We send always multicast (grrrrr)!!!");
+                uint16_t mc = 0xffff;
+                sixlowpan_lowpan_sendto(0, &mc, 2, (uint8_t *) packet, length);
+                return length;
             }
 
             ipv6_addr_t *dest = ip_get_next_hop(&packet->destaddr);
