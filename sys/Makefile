@@ -68,6 +68,12 @@ endif
 ifneq (,$(filter netopt,$(USEMODULE)))
     DIRS += net/crosslayer/netopt
 endif
+ifneq (,$(filter coffee_mci,$(USEMODULE)))
+    DIRS += fs/coffee_mci
+endif
+ifneq (,$(filter fs_util,$(USEMODULE)))
+    DIRS += fs/fs_util
+endif
 
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, ${USEMODULE})))
 
