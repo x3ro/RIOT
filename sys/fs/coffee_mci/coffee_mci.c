@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <diskio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "cfs/cfs.h"
 #include "fs/coffee-mci.h"
@@ -44,35 +45,65 @@ int coffee_mci_init(void) {
 }
 
 void coffee_write_mci(const char* buf, uint32_t size, cfs_offset_t offset) {
-    printf("write; size: %u offset: %d\n", (unsigned int) size, offset);
-    buf = buf;
-    //status = MCI_write(write_buffer, op_start_sector, op_sector_count);
+    fs_flash_op op;
+    fs_util_calc_flash_op(&op, size, offset, COFFEE_PAGE_SIZE);
+
+    printf("writing\n\t start_page: %lu\n\t start_offset: %lu\n\t pages: %lu\n\t last_page_offset: %lu\n",
+        (unsigned long) op.start_page,
+        (unsigned long) op.start_offset,
+        (unsigned long) op.pages,
+        (unsigned long) op.last_page_offset);
+
+    unsigned char page_buffer[COFFEE_PAGE_SIZE];
+
+    assert(op.pages == 1); // TODO: Implement for more than one page.
+
+    if(op.pages == 1) {
+        MCI_read(page_buffer, op.start_page, 1);
+        memcpy(page_buffer + op.start_offset, buf, size);
+        MCI_write(page_buffer, op.start_page, 1);
+        return;
+    }
 }
 
 
 void coffee_read_mci(char* buf, uint32_t size, cfs_offset_t offset) {
-    //printf("read; size: %u offset: %d\n", (unsigned int) size, offset);
-
-    fs_flash_reading r;
-    fs_util_calc_flash_reading(&r, size, offset, COFFEE_PAGE_SIZE);
-
-    // printf("reading\n\t start_page: %lu\n\t start_offset: %lu\n\t pages_to_read: %lu\n\t last_page_length: %lu\n",
-    //     (unsigned long) r.start_page,
-    //     (unsigned long) r.start_offset,
-    //     (unsigned long) r.pages_to_read,
-    //     (unsigned long) r.last_page_length);
-
+    fs_flash_op op;
     unsigned char page_buffer[COFFEE_PAGE_SIZE];
 
-    MCI_read(page_buffer, r.start_page, 1);
-    memcpy(buf, page_buffer + r.start_offset, COFFEE_PAGE_SIZE - r.start_offset);
+    fs_util_calc_flash_op(&op, size, offset, COFFEE_PAGE_SIZE);
 
-    // for(uint32_t i=1; i<(r.pages_to_read-1); i++) {
-    //     MCI_read(page_buffer, r->start_page + i, 1);
-    //     memcpy(buf + (i*COFFEE_PAGE_SIZE), page_buffer, COFFEE_PAGE_SIZE);
-    // }
+    if(op.pages < 1) {
+        printf("Error: pages was < 1\n");
+        printf("params size: %lu; offset: %lu\n", (unsigned long) size, (unsigned long) offset);
+        printf("reading\n\t start_page: %lu\n\t start_offset: %lu\n\t pages: %lu\n\t last_page_offset: %lu\n",
+            (unsigned long) op.start_page,
+            (unsigned long) op.start_offset,
+            (unsigned long) op.pages,
+            (unsigned long) op.last_page_offset);
+        return;
+    }
 
-    buf = buf;
+    if(op.pages == 1) {
+        MCI_read(page_buffer, op.start_page, 1);
+        memcpy(buf, page_buffer + op.start_offset, op.last_page_offset);
+        return;
+    }
+
+    // Handle first page
+    MCI_read(page_buffer, op.start_page, 1);
+    memcpy(buf, page_buffer + op.start_offset, op.page_size - op.start_offset);
+
+    uint32_t bytes_read = op.page_size - op.start_offset;
+    for(unsigned int i=1; i<(op.pages-1); i++) {
+        MCI_read(page_buffer, op.start_page + i, 1);
+        memcpy(buf + bytes_read, page_buffer, op.page_size);
+        bytes_read += op.page_size;
+    }
+
+    // Handle last page
+    MCI_read(page_buffer, op.start_page + (op.pages - 1), 1);
+    memcpy(buf + bytes_read, page_buffer, op.last_page_offset);
 }
 
 void coffee_erase_mci(uint32_t sector) {
