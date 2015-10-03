@@ -23,43 +23,43 @@
 
 static void test_flash_read(void)
 {
-    fs_flash_reading r;
+    fs_flash_op r;
 
-    fs_util_calc_flash_reading(&r, 1, 0, 512);
+    fs_util_calc_flash_op(&r, 1, 0, 512);
     TEST_ASSERT_EQUAL_INT(0, r.start_page);
     TEST_ASSERT_EQUAL_INT(0, r.start_offset);
-    TEST_ASSERT_EQUAL_INT(1, r.pages_to_read);
-    TEST_ASSERT_EQUAL_INT(1, r.last_page_length);
+    TEST_ASSERT_EQUAL_INT(1, r.pages);
+    TEST_ASSERT_EQUAL_INT(1, r.last_page_offset);
 
-    fs_util_calc_flash_reading(&r, 512, 0, 512);
+    fs_util_calc_flash_op(&r, 512, 0, 512);
     TEST_ASSERT_EQUAL_INT(0, r.start_page);
     TEST_ASSERT_EQUAL_INT(0, r.start_offset);
-    TEST_ASSERT_EQUAL_INT(1, r.pages_to_read);
-    TEST_ASSERT_EQUAL_INT(512, r.last_page_length);
+    TEST_ASSERT_EQUAL_INT(1, r.pages);
+    TEST_ASSERT_EQUAL_INT(512, r.last_page_offset);
 
-    fs_util_calc_flash_reading(&r, 513, 0, 512);
+    fs_util_calc_flash_op(&r, 513, 0, 512);
     TEST_ASSERT_EQUAL_INT(0, r.start_page);
     TEST_ASSERT_EQUAL_INT(0, r.start_offset);
-    TEST_ASSERT_EQUAL_INT(2, r.pages_to_read);
-    TEST_ASSERT_EQUAL_INT(1, r.last_page_length);
+    TEST_ASSERT_EQUAL_INT(2, r.pages);
+    TEST_ASSERT_EQUAL_INT(1, r.last_page_offset);
 
-    fs_util_calc_flash_reading(&r, 513, 512, 512);
+    fs_util_calc_flash_op(&r, 513, 512, 512);
     TEST_ASSERT_EQUAL_INT(1, r.start_page);
     TEST_ASSERT_EQUAL_INT(0, r.start_offset);
-    TEST_ASSERT_EQUAL_INT(2, r.pages_to_read);
-    TEST_ASSERT_EQUAL_INT(1, r.last_page_length);
+    TEST_ASSERT_EQUAL_INT(2, r.pages);
+    TEST_ASSERT_EQUAL_INT(1, r.last_page_offset);
 
-    fs_util_calc_flash_reading(&r, 26, 512, 512);
+    fs_util_calc_flash_op(&r, 26, 512, 512);
     TEST_ASSERT_EQUAL_INT(1, r.start_page);
     TEST_ASSERT_EQUAL_INT(0, r.start_offset);
-    TEST_ASSERT_EQUAL_INT(1, r.pages_to_read);
-    TEST_ASSERT_EQUAL_INT(26, r.last_page_length);
+    TEST_ASSERT_EQUAL_INT(1, r.pages);
+    TEST_ASSERT_EQUAL_INT(26, r.last_page_offset);
 
-    fs_util_calc_flash_reading(&r, 1000, 256, 512);
+    fs_util_calc_flash_op(&r, 1000, 256, 512);
     TEST_ASSERT_EQUAL_INT(0, r.start_page);
     TEST_ASSERT_EQUAL_INT(256, r.start_offset);
-    TEST_ASSERT_EQUAL_INT(2, r.pages_to_read);
-    TEST_ASSERT_EQUAL_INT(232, r.last_page_length);
+    TEST_ASSERT_EQUAL_INT(2, r.pages);
+    TEST_ASSERT_EQUAL_INT(232, r.last_page_offset);
 }
 
 Test *tests_fsutil_tests(void)
