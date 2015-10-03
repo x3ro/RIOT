@@ -24,6 +24,7 @@ typedef struct fs_flash_op {
     uint32_t pages;             /**< Number of pages involved in the operation */
     uint32_t last_page_offset;  /**< Offset inside the last page at which the operation
                                     should end */
+    uint32_t page_size;         /**< Page size of the underlying flash storage */
 } fs_flash_op;
 
 /**
