@@ -27,6 +27,7 @@
  */
 
 #include <string.h>
+#include <stdbool.h>
 #include "diskio.h"
 
 #define ENABLE_DEBUG    (0)
@@ -43,6 +44,18 @@
 
 static char native_mci_memory[NATIVE_MCI_SIZE];
 
+bool _validate_parameters(unsigned long sector, unsigned char count) {
+    if(count < 1) {
+        return false;
+    }
+
+    if(sector + count > NATIVE_MCI_SECTOR_COUNT) {
+        return false;
+    }
+
+    return true;
+}
+
 DSTATUS MCI_initialize(void) {
     // Virtual MCI device is always initialied, present and not
     // write-protected. See "Disk Status Bits" in diskio.h.
@@ -57,7 +70,7 @@ DSTATUS MCI_status(void) {
 
 /* Read |count| sectors starting at |sector| (LBA) */
 DRESULT MCI_read(unsigned char *buff, unsigned long sector, unsigned char count) {
-    if(sector + count > NATIVE_MCI_SECTOR_COUNT) {
+    if(!_validate_parameters(sector, count)) {
         return RES_PARERR;
     }
 
@@ -70,9 +83,11 @@ DRESULT MCI_read(unsigned char *buff, unsigned long sector, unsigned char count)
 
 /* Write |count| sectors starting at |sector| (LBA) */
 DRESULT MCI_write(const unsigned char *buff, unsigned long sector, unsigned char count) {
-    buff = buff;
-    sector = sector;
-    count = count;
+
+
+    if(!_validate_parameters(sector, count)) {
+        return RES_PARERR;
+    }
 
     memcpy(native_mci_memory + (sector * NATIVE_MCI_SECTOR_SIZE),
            buff,
@@ -111,6 +126,12 @@ DRESULT MCI_ioctl(
         /* Erase a block of sectors */
         case CTRL_ERASE_SECTOR:
             block = *(unsigned long *)buff;
+
+            if(!_validate_parameters(block, 1)) {
+                return RES_PARERR;
+            }
+
+            printf("erase; sector: %lu\n", block);
             memset(native_mci_memory + (block * GET_BLOCK_SIZE),
                    '\0',
                    NATIVE_MCI_BLOCK_SIZE);
