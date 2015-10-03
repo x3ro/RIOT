@@ -38,32 +38,20 @@ static void test_file1(void)
     int fd = cfs_open("file1", CFS_READ | CFS_WRITE);
     TEST_ASSERT_EQUAL_INT(0, fd);
 
-    printf("============== 1\n");
-
     int bytes = cfs_write(fd, teststring1, input_length);
     TEST_ASSERT_EQUAL_INT(8, bytes);
 
-    printf("============== 2n");
 
     int pos = cfs_seek(fd, 0, CFS_SEEK_SET);
     TEST_ASSERT_EQUAL_INT(0, pos);
 
-
-    printf("============== 3\n");
-
     bytes = cfs_read(fd, buf, input_length);
     TEST_ASSERT_EQUAL_INT(8, bytes);
-
-    printf("============== 4\n");
 
     buf[input_length] = '\0';
 
     TEST_ASSERT_EQUAL_STRING(teststring1, (char*)buf);
     cfs_close(fd);
-
-
-
-    printf("============== 5\n");
 }
 
 static void test_file2(void)
