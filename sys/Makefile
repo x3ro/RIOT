@@ -70,6 +70,9 @@ endif
 ifneq (,$(filter flash_sim,$(USEMODULE)))
     DIRS += fs/flash_sim
 endif
+ifneq (,$(filter ftl,$(USEMODULE)))
+    DIRS += fs/ftl
+endif
 
 ifneq (,$(filter netopt,$(USEMODULE)))
     DIRS += net/crosslayer/netopt
