@@ -52,10 +52,11 @@ typedef struct flash_sim {
 
 flash_sim_error_t flash_sim_init(flash_sim *fs);
 flash_sim_error_t flash_sim_format(flash_sim *fs);
-flash_sim_error_t flash_sim_read(flash_sim *fs, void *buffer, uint32_t page);
-flash_sim_error_t flash_sim_write(flash_sim *fs, const void *buffer, uint32_t page);
-flash_sim_error_t flash_sim_erase(flash_sim *fs, uint32_t block);
-
+flash_sim_error_t flash_sim_read(const flash_sim *fs, void *buffer, uint32_t page);
+flash_sim_error_t flash_sim_write(const flash_sim *fs, const void *buffer, uint32_t page);
+flash_sim_error_t flash_sim_erase(const flash_sim *fs, uint32_t block);
+flash_sim_error_t flash_sim_read_partial(const flash_sim *fs, void *buffer, uint32_t page, uint32_t offset, uint32_t length);
+flash_sim_error_t flash_sim_write_partial(const flash_sim *fs, const void *buffer, uint32_t page, uint32_t offset, uint32_t length);
 
 
 #ifdef __cplusplus

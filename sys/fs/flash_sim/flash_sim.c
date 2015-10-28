@@ -78,7 +78,7 @@ flash_sim_error_t flash_sim_format(flash_sim *fs) {
     return E_SUCCESS;
 }
 
-flash_sim_error_t flash_sim_read(flash_sim *fs, void *buffer, uint32_t page) {
+flash_sim_error_t flash_sim_read(const flash_sim *fs, void *buffer, uint32_t page) {
     MYDEBUG("page = %u\n", page);
 
     if(fs->_fp == NULL) {
@@ -101,7 +101,46 @@ flash_sim_error_t flash_sim_read(flash_sim *fs, void *buffer, uint32_t page) {
     return E_SUCCESS;
 }
 
-flash_sim_error_t flash_sim_write(flash_sim *fs, const void *buffer, uint32_t page) {
+// flash_sim_error_t flash_sim_read(flash_sim *fs, void *buffer, uint32_t page, uint32_t offset, uint32_t length) {
+//     unsigned char *page_buffer = malloc(fs->page_size);
+//     flash_sim_read(fs)
+// }
+//
+flash_sim_error_t flash_sim_read_partial(const flash_sim *fs, void *buffer, uint32_t page, uint32_t offset, uint32_t length) {
+    unsigned char *page_buffer = malloc(fs->page_size);
+
+    int ret = flash_sim_read(fs, page_buffer, page);
+    if(ret != E_SUCCESS) {
+        free(page_buffer);
+        return ret;
+    }
+
+    memcpy(buffer, page_buffer + offset, length);
+    free(page_buffer);
+    return E_SUCCESS;
+}
+
+flash_sim_error_t flash_sim_write_partial(const flash_sim *fs, const void *buffer, uint32_t page, uint32_t offset, uint32_t length) {
+    unsigned char *page_buffer = malloc(fs->page_size);
+    int ret = flash_sim_read(fs, page_buffer, page);
+    if(ret != E_SUCCESS) {
+        MYDEBUG("read failed page = %u\n", page);
+        free(page_buffer);
+        return ret;
+    }
+
+    memcpy(page_buffer+offset, buffer, length);
+    ret = flash_sim_write(fs, page_buffer, page);
+    if(ret != E_SUCCESS) {
+        MYDEBUG("write failed page = %u\n", page);
+        free(page_buffer);
+        return ret;
+    }
+
+    return E_SUCCESS;
+}
+
+flash_sim_error_t flash_sim_write(const flash_sim *fs, const void *buffer, uint32_t page) {
     MYDEBUG("page = %u\n", page);
 
     if(fs->_fp == NULL) {
@@ -113,6 +152,7 @@ flash_sim_error_t flash_sim_write(flash_sim *fs, const void *buffer, uint32_t pa
     unsigned char *page_buffer = malloc(fs->page_size);
     int ret = flash_sim_read(fs, page_buffer, page);
     if(ret != E_SUCCESS) {
+        MYDEBUG("read failed page = %u\n", page);
         free(page_buffer);
         return ret;
     }
@@ -151,7 +191,7 @@ flash_sim_error_t flash_sim_write(flash_sim *fs, const void *buffer, uint32_t pa
     return E_SUCCESS;
 }
 
-flash_sim_error_t flash_sim_erase(flash_sim *fs, uint32_t block) {
+flash_sim_error_t flash_sim_erase(const flash_sim *fs, uint32_t block) {
     MYDEBUG("block = %u\n", block);
 
     if(fs->_fp == NULL) {

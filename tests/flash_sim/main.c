@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 #include "embUnit.h"
 #include "xtimer.h"
@@ -145,6 +146,31 @@ static void test_multiple_writes_to_zero(void) {
     TEST_ASSERT_EQUAL_INT(0, strcmp(read_buffer, expect_buffer));
 }
 
+static void test_partial_read_write(void) {
+    _reset();
+
+    uint64_t write_test = 0x1234ABCD1234ABCD;
+    uint64_t read_test = 0;
+
+    uint32_t page = 24;
+    flash_sim_erase(&fs, 0);
+
+    // offset=8, length=8
+    ret = flash_sim_write_partial(&fs, (char*)&write_test, page, 8, 8);
+    TEST_ASSERT_EQUAL_INT(E_SUCCESS, ret);
+
+    ret = flash_sim_read_partial(&fs, (char*)&read_test, page, 8, 8);
+    TEST_ASSERT_EQUAL_INT(E_SUCCESS, ret);
+
+    printf("%llu <- read | write -> %llu\n", read_test, write_test);
+    TEST_ASSERT(read_test == 0x1234ABCD1234ABCD);
+
+    memset(expect_buffer, 0xFF, 512);
+    *((uint64_t*)expect_buffer+1) = 0x1234ABCD1234ABCD;
+    ret = flash_sim_read(&fs, read_buffer, page);
+    TEST_ASSERT_EQUAL_INT(0, strncmp(read_buffer, expect_buffer, 512));
+}
+
 
 static void test_erroneous_reads(void) {
     ret = flash_sim_read(&fs, read_buffer, 999999);
@@ -166,6 +192,7 @@ Test *testsrunner(void) {
         new_TestFixture(test_erase),
         new_TestFixture(test_multiple_writes),
         new_TestFixture(test_multiple_writes_to_zero),
+        new_TestFixture(test_partial_read_write),
         new_TestFixture(test_erroneous_reads),
         new_TestFixture(test_erroneous_writes),
     };
