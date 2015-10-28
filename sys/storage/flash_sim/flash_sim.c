@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include "storage/flash_sim.h"
+#include "storage/ftl.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -216,3 +217,42 @@ int flash_sim_erase(const flash_sim *fs, uint32_t block) {
     return 0;
 }
 
+
+
+/* ==========================================
+ * Functions for a flash_sim based FTL device
+ * ========================================== */
+
+int flash_sim_ftl_write(flash_sim *fs,
+                  const char *buffer,
+                  pageptr_t page,
+                  uint32_t offset,
+                  uint16_t length) {
+
+    int ret = flash_sim_write_partial(fs, buffer, page, offset, length);
+    if(ret != 0) {
+        return -EIO;
+    }
+    return 0;
+}
+
+int flash_sim_ftl_read(flash_sim *fs,
+                 char *buffer,
+                 pageptr_t page,
+                 uint32_t offset,
+                 uint16_t length) {
+
+    int ret = flash_sim_read_partial(fs, buffer, page, offset, length);
+    if(ret != 0) {
+        return -EIO;
+    }
+    return 0;
+}
+
+int flash_sim_ftl_erase(flash_sim *fs, blockptr_t block) {
+    int ret = flash_sim_erase(fs, block);
+    if(ret != 0) {
+        return -EIO;
+    }
+    return 0;
+}

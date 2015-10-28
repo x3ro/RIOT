@@ -415,3 +415,7 @@ endif
 ifneq (,$(filter phydat,$(USEMODULE)))
   USEMODULE += fmt
 endif
+
+ifneq (,$(filter ftl,$(USEMODULE)))
+  USEMODULE += hamming256
+endif
