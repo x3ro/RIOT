@@ -8,7 +8,7 @@
 
 #include "fs/flash_sim.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define MYDEBUG(...) DEBUG("%s: ", __FUNCTION__); \

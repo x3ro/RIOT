@@ -27,44 +27,98 @@ extern "C" {
 #endif
 
 
-#define FTL_PAGE_SIZE 2048
-#define FTL_SUBPAGE_SIZE 512
-#define FTL_BLOCK_SIZE 2048*1024
-#define FTL_SUBPAGES_PER_PAGE (FTL_SUBPAGE_SIZE / FTL_SUBPAGE_SIZE)
+
 
 
 typedef enum {
     E_FTL_SUCCESS = 0,
-    E_FTL_ERROR = 1
+    E_FTL_ERROR = 1,
+    E_FTL_INSUFFICIENT_STORAGE = 2,
+    E_FTL_OUT_OF_RANGE = 3,
+    E_FTL_TOO_MUCH_DATA = 4,
+    E_FTL_OUT_OF_MEMORY = 5,
+    E_CORRUPT_PAGE = 6
 } ftl_error_t;
 
-
-typedef struct {
-    uint32_t base_offset; // in pages!!!!
-    uint32_t size;
-} ftl_partition_s;
-
-typedef struct __attribute__((__packed__)) {
-    unsigned int DataLength:16;
-    unsigned int ECCSize:5;
-    unsigned int Flags:3;
-} subpageheader_s;
-
+typedef uint32_t pageptr_t;
 typedef uint32_t subpageptr_t;
 typedef uint16_t subpageoffset_t;
 typedef uint32_t blockptr_t;
 
-static const ftl_partition_s ftl_partition_data = {0, 67108864};
+struct ftl_device_s;
+
+typedef struct {
+    struct ftl_device_s *device;
+    uint32_t base_offset; // in blocks!!!
+    uint32_t size;        // in blocks!!!
+} ftl_partition_s;
+
+typedef struct ftl_device_s {
+    ftl_error_t (*write)(const char *buffer,
+                         pageptr_t page,
+                         uint32_t offset,
+                         uint16_t length);
+
+    ftl_error_t (*read)(char *buffer,
+                        pageptr_t page,
+                        uint32_t offset,
+                        uint16_t length);
+
+    ftl_error_t (*erase)(blockptr_t block);
+
+    ftl_partition_s index_partition;
+    ftl_partition_s data_partition;
+
+    char *page_buffer;
+
+    uint32_t total_pages;
+    uint16_t page_size;
+    uint16_t subpage_size;
+    uint16_t pages_per_block;
+    uint8_t ecc_size;
+} ftl_device_s;
 
 
 
-ftl_error_t ftl_init(void);
 
-ftl_error_t ftl_erase(blockptr_t block);
+typedef struct __attribute__((__packed__)) {
+    unsigned int data_length:16;
+    unsigned int ecc_size:5;
+    unsigned int flags:3;
+} subpageheader_s;
+
+
+
+//static const ftl_partition_s ftl_partition_data; // = {0, 67108864};
+
+
+
+ftl_error_t ftl_init(ftl_device_s *device);
+
+ftl_error_t ftl_erase(const ftl_partition_s *partition, blockptr_t block);
+
+ftl_error_t ftl_read_raw(const ftl_partition_s *partition,
+                     char *buffer,
+                     subpageptr_t subpage);
+
+ftl_error_t ftl_write_raw(const ftl_partition_s *partition,
+                     const char *buffer,
+                     subpageptr_t subpage);
+
+ftl_error_t ftl_write(const ftl_partition_s *partition,
+                      const char *buffer,
+                      subpageptr_t subpage,
+                      subpageoffset_t data_length);
 
 ftl_error_t ftl_read(const ftl_partition_s *partition,
                      char *buffer,
+                     subpageheader_s *header,
                      subpageptr_t subpage);
+
+
+uint8_t ftl_ecc_size(const ftl_device_s *device);
+subpageptr_t ftl_first_subpage_of_block(const ftl_device_s *device, blockptr_t block);
+subpageoffset_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enabled);
 
 
 #ifdef __cplusplus

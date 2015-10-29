@@ -6,6 +6,8 @@ USEMODULE += xtimer
 USEMODULE += flash_sim
 USEMODULE += ftl
 
+USEPKG += libfixmath
+
 INCLUDES += -I$(shell pwd)
 CFLAGS += -DDEVELHELP -g
 

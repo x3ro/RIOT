@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 
 #include "embUnit.h"
@@ -34,6 +35,11 @@
 // char write_buffer[512];
 // char expect_buffer[512];
 
+#define FTL_PAGE_SIZE 2048
+#define FTL_SUBPAGE_SIZE 512
+#define FTL_BLOCK_SIZE 2048*1024
+#define FTL_SUBPAGES_PER_PAGE (FTL_SUBPAGE_SIZE / FTL_SUBPAGE_SIZE)
+
 char page_buffer[FTL_SUBPAGE_SIZE];
 char expect_buffer[FTL_SUBPAGE_SIZE];
 
@@ -43,55 +49,150 @@ char expect_buffer[FTL_SUBPAGE_SIZE];
 //     memset(expect_buffer, 0x0, 512);
 // }
 
+
+
+/* Functions for a flash_sim based FTL device */
+
+flash_sim fs;
+ftl_device_s device;
+
+ftl_error_t write(const char *buffer,
+                  pageptr_t page,
+                  uint32_t offset,
+                  uint16_t length) {
+
+    int ret = flash_sim_write_partial(&fs, buffer, page, offset, length);
+    if(ret != E_SUCCESS) {
+        return E_FTL_ERROR;
+    }
+    return E_FTL_SUCCESS;
+}
+
+ftl_error_t read(char *buffer,
+                 pageptr_t page,
+                 uint32_t offset,
+                 uint16_t length) {
+
+    int ret = flash_sim_read_partial(&fs, buffer, page, offset, length);
+    if(ret != E_SUCCESS) {
+        return E_FTL_ERROR;
+    }
+    return E_FTL_SUCCESS;
+}
+
+ftl_error_t erase(blockptr_t block) {
+    int ret = flash_sim_erase(&fs, block);
+    if(ret != E_SUCCESS) {
+        return E_FTL_ERROR;
+    }
+    return E_FTL_SUCCESS;
+}
+
+
 static void test_init(void) {
-    ftl_error_t ret;
-    ret = ftl_init();
+    device.write = write;
+    device.read = read;
+    device.erase = erase;
+    device.page_size = 2048;
+    device.subpage_size = 512;
+    device.pages_per_block = 1024;
+    device.total_pages = 32768;
+
+    fs.page_size = device.page_size;
+    fs.block_size = device.pages_per_block * device.page_size;
+    fs.storage_size = device.total_pages * device.page_size;
+    int ret = flash_sim_init(&fs);
+    TEST_ASSERT_EQUAL_INT(E_SUCCESS, ret);
+
+    ret = ftl_init(&device);
+    TEST_ASSERT(device.index_partition.device != 0);
+    TEST_ASSERT_EQUAL_INT(0, device.index_partition.base_offset);
+    TEST_ASSERT_EQUAL_INT(2, device.index_partition.size);
+
+    TEST_ASSERT(device.data_partition.device != 0);
+    TEST_ASSERT_EQUAL_INT(2, device.data_partition.base_offset);
+    TEST_ASSERT_EQUAL_INT(30, device.data_partition.size);
+
+    TEST_ASSERT_EQUAL_INT(24, device.ecc_size);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 }
 
-static void test1(void) {
+static void test_ecc_helpers(void) {
+    ftl_device_s test;
+    test.subpage_size = 256;
+    TEST_ASSERT_EQUAL_INT(22, ftl_ecc_size(&test));
+    test.subpage_size = 512;
+    TEST_ASSERT_EQUAL_INT(24, ftl_ecc_size(&test));
+    test.subpage_size = 2048;
+    TEST_ASSERT_EQUAL_INT(28, ftl_ecc_size(&test));
+}
+
+static void test_size_helpers(void) {
+    TEST_ASSERT_EQUAL_INT(0, ftl_first_subpage_of_block(&device, 0));
+    TEST_ASSERT_EQUAL_INT(4096, ftl_first_subpage_of_block(&device, 1));
+    TEST_ASSERT_EQUAL_INT(172032, ftl_first_subpage_of_block(&device, 42));
+}
+
+static void test_write_read_raw(void) {
     ftl_error_t ret;
 
     blockptr_t block = 0;
-    ret = ftl_erase(block);
+    ret = ftl_erase(&device.data_partition, block);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 
     memset(page_buffer, 0x0, 512);
     memset(expect_buffer, 0xFF, 512);
     subpageptr_t subpage = 0;
-    ret = ftl_read(&ftl_partition_data, page_buffer, subpage);
+    ret = ftl_read_raw(&device.data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
     TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, FTL_SUBPAGE_SIZE));
 
+    memset(page_buffer, 0xAB, 512);
+    ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 
+    memset(page_buffer, 0x00, 512);
+    memset(expect_buffer, 0xAB, 512);
+    ret = ftl_read_raw(&device.data_partition, page_buffer, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+    TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, FTL_SUBPAGE_SIZE));
+}
 
+static void test_write_read(void) {
+    ftl_error_t ret;
 
+    blockptr_t block = 12;
+    ret = ftl_erase(&device.data_partition, block);
 
+    bool ecc_enabled = false;
+    subpageoffset_t data_length = ftl_data_per_subpage(&device, ecc_enabled);
+    memset(page_buffer, 0xAB, data_length);
 
+    subpageptr_t subpage = ftl_first_subpage_of_block(&device, block);
 
+    ret = ftl_write(&device.data_partition, page_buffer, subpage, 512);
+    TEST_ASSERT_EQUAL_INT(E_FTL_TOO_MUCH_DATA, ret);
 
-    // TEST_ASSERT_EQUAL_INT(0, ret);
-    //TEST_ASSERT_EQUAL_INT(0, sizeof(subpageheader_s));
+    ret = ftl_write(&device.data_partition, page_buffer, subpage, data_length);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 
-    // ret = flash_sim_format(&fs);
-    // TEST_ASSERT_EQUAL_INT(E_NOT_INITIALIZED, ret);
-
-    // ret = flash_sim_read(&fs, read_buffer, 0);
-    // TEST_ASSERT_EQUAL_INT(E_NOT_INITIALIZED, ret);
-
-    // ret = flash_sim_write(&fs, write_buffer, 0);
-    // TEST_ASSERT_EQUAL_INT(E_NOT_INITIALIZED, ret);
-    //
-    //
-
-
-
+    subpageheader_s header;
+    ret = ftl_read(&device.data_partition, page_buffer, &header, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+    TEST_ASSERT_EQUAL_INT(0, header.ecc_size);
+    TEST_ASSERT_EQUAL_INT(data_length, header.data_length);
+    memset(expect_buffer, 0xAB, data_length);
+    TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, data_length));
 }
 
 
 Test *testsrunner(void) {
     EMB_UNIT_TESTFIXTURES(fixtures) {
         new_TestFixture(test_init),
-        new_TestFixture(test1),
+        new_TestFixture(test_ecc_helpers),
+        new_TestFixture(test_size_helpers),
+        new_TestFixture(test_write_read_raw),
+        new_TestFixture(test_write_read),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);
