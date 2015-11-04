@@ -188,6 +188,7 @@ flash_sim_error_t flash_sim_write(const flash_sim *fs, const void *buffer, uint3
         return E_FILE_ERROR;
     }
 
+    fflush(fs->_fp);
     return E_SUCCESS;
 }
 
