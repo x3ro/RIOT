@@ -113,18 +113,18 @@ static void test_init(void) {
     TEST_ASSERT_EQUAL_INT(2, device.data_partition.base_offset);
     TEST_ASSERT_EQUAL_INT(30, device.data_partition.size);
 
-    TEST_ASSERT_EQUAL_INT(24, device.ecc_size);
+    TEST_ASSERT_EQUAL_INT(6, device.ecc_size);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 }
 
 static void test_ecc_helpers(void) {
     ftl_device_s test;
     test.subpage_size = 256;
-    TEST_ASSERT_EQUAL_INT(22, ftl_ecc_size(&test));
+    TEST_ASSERT_EQUAL_INT(3, ftl_ecc_size(&test));
     test.subpage_size = 512;
-    TEST_ASSERT_EQUAL_INT(24, ftl_ecc_size(&test));
+    TEST_ASSERT_EQUAL_INT(6, ftl_ecc_size(&test));
     test.subpage_size = 2048;
-    TEST_ASSERT_EQUAL_INT(28, ftl_ecc_size(&test));
+    TEST_ASSERT_EQUAL_INT(22, ftl_ecc_size(&test));
 }
 
 static void test_size_helpers(void) {
@@ -166,6 +166,7 @@ static void test_write_read(void) {
 
     bool ecc_enabled = false;
     subpageoffset_t data_length = ftl_data_per_subpage(&device, ecc_enabled);
+    TEST_ASSERT_EQUAL_INT(509, data_length); // 2 bytes header removed, no ECC
     memset(page_buffer, 0xAB, data_length);
 
     subpageptr_t subpage = ftl_first_subpage_of_block(&device, block);
@@ -179,10 +180,101 @@ static void test_write_read(void) {
     subpageheader_s header;
     ret = ftl_read(&device.data_partition, page_buffer, &header, subpage);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
-    TEST_ASSERT_EQUAL_INT(0, header.ecc_size);
     TEST_ASSERT_EQUAL_INT(data_length, header.data_length);
     memset(expect_buffer, 0xAB, data_length);
     TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, data_length));
+}
+
+static void test_write_read_ecc(void) {
+    ftl_error_t ret;
+
+    blockptr_t block = 8;
+    ret = ftl_erase(&device.data_partition, block);
+
+    bool ecc_enabled = true;
+    subpageoffset_t data_length = ftl_data_per_subpage(&device, ecc_enabled);
+    TEST_ASSERT_EQUAL_INT(503, data_length); // 2 bytes header + 6 ECC removed
+    memset(page_buffer, 0xAB, data_length);
+
+    subpageptr_t subpage = ftl_first_subpage_of_block(&device, block);
+
+    ret = ftl_write_ecc(&device.data_partition, page_buffer, subpage, 512);
+    TEST_ASSERT_EQUAL_INT(E_FTL_TOO_MUCH_DATA, ret);
+
+    ret = ftl_write_ecc(&device.data_partition, page_buffer, subpage, data_length);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+    subpageheader_s header;
+    ret = ftl_read(&device.data_partition, page_buffer, &header, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+    TEST_ASSERT_EQUAL_INT(data_length, header.data_length);
+    memset(expect_buffer, 0xAB, data_length);
+    TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, data_length));
+
+
+    // Fake a broken subpage that can be corrected
+    ret = ftl_erase(&device.data_partition, block);
+    memset(page_buffer, 0xAB, 512);
+    memcpy(page_buffer, &header, sizeof(header));
+    // The correct hamming code for the 0xAB sequence
+    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
+    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    // The flipped bit
+    page_buffer[27] = 0xAA;
+    ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+    ret = ftl_read(&device.data_partition, page_buffer, &header, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+
+    // Fake a broken subpage that cannot be corrected
+    ret = ftl_erase(&device.data_partition, block);
+    memset(page_buffer, 0xAB, 512);
+    memcpy(page_buffer, &header, sizeof(header));
+    // The correct hamming code for the 0xAB sequence
+    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
+    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    // The flipped bit
+    page_buffer[26] = 0xAA;
+    page_buffer[27] = 0xAA;
+    ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+    ret = ftl_read(&device.data_partition, page_buffer, &header, subpage);
+    TEST_ASSERT_EQUAL_INT(E_CORRUPT_PAGE, ret);
+
+
+    // Fake a broken header that can be corrected
+    ret = ftl_erase(&device.data_partition, block);
+    memset(page_buffer, 0xAB, 512);
+    header.data_length -= 1;
+    memcpy(page_buffer, &header, sizeof(header));
+    header.data_length += 1;
+    // The correct hamming code for the 0xAB sequence
+    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
+    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+    ret = ftl_read(&device.data_partition, page_buffer, &header, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+    TEST_ASSERT_EQUAL_INT(503, header.data_length);
+
+
+    // Fake broken header that cannot be recovered
+    ret = ftl_erase(&device.data_partition, block);
+    memset(page_buffer, 0xAB, data_length);
+    header.data_length = 0xFF;
+    memcpy(page_buffer, &header, sizeof(header));
+    // The correct hamming code for the 0xAB sequence
+    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
+    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+    ret = ftl_read(&device.data_partition, page_buffer, &header, subpage);
+    TEST_ASSERT_EQUAL_INT(E_CORRUPT_PAGE, ret);
 }
 
 
@@ -193,6 +285,7 @@ Test *testsrunner(void) {
         new_TestFixture(test_size_helpers),
         new_TestFixture(test_write_read_raw),
         new_TestFixture(test_write_read),
+        new_TestFixture(test_write_read_ecc),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);

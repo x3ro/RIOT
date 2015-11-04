@@ -28,8 +28,6 @@ extern "C" {
 
 
 
-
-
 typedef enum {
     E_FTL_SUCCESS = 0,
     E_FTL_ERROR = 1,
@@ -70,6 +68,7 @@ typedef struct ftl_device_s {
     ftl_partition_s data_partition;
 
     char *page_buffer;
+    char *ecc_buffer;
 
     uint32_t total_pages;
     uint16_t page_size;
@@ -79,18 +78,11 @@ typedef struct ftl_device_s {
 } ftl_device_s;
 
 
-
-
 typedef struct __attribute__((__packed__)) {
     unsigned int data_length:16;
-    unsigned int ecc_size:5;
-    unsigned int flags:3;
+    unsigned int ecc_enabled:1;
+    unsigned int reserved:1;
 } subpageheader_s;
-
-
-
-//static const ftl_partition_s ftl_partition_data; // = {0, 67108864};
-
 
 
 ftl_error_t ftl_init(ftl_device_s *device);
@@ -115,6 +107,10 @@ ftl_error_t ftl_read(const ftl_partition_s *partition,
                      subpageheader_s *header,
                      subpageptr_t subpage);
 
+ftl_error_t ftl_write_ecc(const ftl_partition_s *partition,
+                      const char *buffer,
+                      subpageptr_t subpage,
+                      subpageoffset_t data_length);
 
 uint8_t ftl_ecc_size(const ftl_device_s *device);
 subpageptr_t ftl_first_subpage_of_block(const ftl_device_s *device, blockptr_t block);

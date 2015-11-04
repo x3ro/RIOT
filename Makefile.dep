@@ -385,3 +385,7 @@ endif
 ifneq (,$(filter xtimer,$(USEMODULE)))
     FEATURES_REQUIRED += periph_timer
 endif
+
+ifneq (,$(filter ftl,$(USEMODULE)))
+  USEMODULE += hamming256
+endif

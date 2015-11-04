@@ -4,6 +4,7 @@
 
 #include "fs/ftl.h"
 #include "fs/flash_sim.h"
+#include "ecc/hamming256.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -34,7 +35,19 @@ uint32_t ftl_device_blocksize(const ftl_device_s *device) {
 }
 
 uint8_t ftl_ecc_size(const ftl_device_s *device) {
-    return (uint8_t) uint32_log2(device->subpage_size * 8) * 2;
+    // This would be the result for the "good" Hamming algorithm
+    //return (uint8_t) uint32_log2(device->subpage_size * 8) * 2;
+
+    // The current Hamming code implememntation unfortunately only supports
+    // 256 byte blocks, each with a 22 bit code.
+    uint8_t bitsize = (device->subpage_size / 256) * 22;
+
+    uint8_t bytesize = bitsize / 8;
+    if(bitsize % 8 > 0) {
+        bytesize++;
+    }
+
+    return bytesize;
 }
 
 uint8_t ftl_subpage_mod(const ftl_device_s *device, subpageptr_t subpage) {
@@ -51,11 +64,13 @@ pageptr_t ftl_subpage_to_page(const ftl_partition_s *partition, subpageptr_t sub
 }
 
 subpageoffset_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enabled) {
+    subpageoffset_t size = device->subpage_size - sizeof(subpageheader_s);
+
     if(ecc_enabled) {
-        return -1; // TODO
-    } else {
-        return device->subpage_size - sizeof(subpageheader_s);
+        size -= device->ecc_size;
     }
+
+    return size;
 }
 
 ftl_error_t ftl_init(ftl_device_s *device) {
@@ -81,6 +96,11 @@ ftl_error_t ftl_init(ftl_device_s *device) {
     device->ecc_size = ftl_ecc_size(device);
     device->page_buffer = malloc(device->subpage_size);
     if(device->page_buffer == 0)  {
+        return E_FTL_OUT_OF_MEMORY;
+    }
+
+    device->ecc_buffer = malloc(device->ecc_size);
+    if(device->ecc_buffer == 0)  {
         return E_FTL_OUT_OF_MEMORY;
     }
 
@@ -128,24 +148,62 @@ ftl_error_t ftl_write_raw(const ftl_partition_s *partition,
         partition->device->subpage_size);
 }
 
+
 ftl_error_t ftl_write(const ftl_partition_s *partition,
                       const char *buffer,
                       subpageptr_t subpage,
                       subpageoffset_t data_length) {
 
     subpageheader_s header;
-    if(data_length > partition->device->subpage_size - sizeof(header)) {
+    if(data_length > ftl_data_per_subpage(partition->device, false)) {
         return E_FTL_TOO_MUCH_DATA;
     }
 
     MYDEBUG("Writing to subpage %d\n", subpage);
 
     header.data_length = data_length;
-    header.ecc_size = 0;
-    header.flags = 0;
+    header.ecc_enabled = 0;
+    header.reserved = 0;
 
     memcpy(partition->device->page_buffer, &header, sizeof(header));
     memcpy(partition->device->page_buffer + sizeof(header), buffer, data_length);
+    return ftl_write_raw(partition, partition->device->page_buffer, subpage);
+}
+
+ftl_error_t ftl_write_ecc(const ftl_partition_s *partition,
+                      const char *buffer,
+                      subpageptr_t subpage,
+                      subpageoffset_t data_length) {
+
+    subpageheader_s header;
+    MYDEBUG("l: %d, other: %d\n", data_length, partition->device->subpage_size - ftl_data_per_subpage(partition->device, true));
+    if(data_length >
+       ftl_data_per_subpage(partition->device, true)) {
+        return E_FTL_TOO_MUCH_DATA;
+    }
+
+    MYDEBUG("Writing to subpage %d w/ ECC\n", subpage);
+
+    header.data_length = data_length;
+    header.ecc_enabled = 1;
+    header.reserved = 0;
+
+    // Page buffer needs to be wiped because of the ECC calculation
+    memset(partition->device->page_buffer, 0x00, partition->device->subpage_size);
+
+    memcpy(partition->device->page_buffer, &header, sizeof(header));
+
+    memcpy(partition->device->page_buffer + sizeof(header) + partition->device->ecc_size,
+           buffer, data_length);
+
+    Hamming_Compute256x((uint8_t*)partition->device->page_buffer,
+                        partition->device->subpage_size,
+                        (uint8_t*)partition->device->ecc_buffer);
+
+    memcpy(partition->device->page_buffer + sizeof(header),
+           partition->device->ecc_buffer,
+           partition->device->ecc_size);
+
     return ftl_write_raw(partition, partition->device->page_buffer, subpage);
 }
 
@@ -164,7 +222,28 @@ ftl_error_t ftl_read(const ftl_partition_s *partition,
         return E_CORRUPT_PAGE;
     }
 
-    // TODO: check if there's an ECC!
-    memcpy(buffer, partition->device->page_buffer + sizeof(subpageheader_s), header->data_length);
+    char *data_buffer = partition->device->page_buffer;
+    char *ecc_buffer = partition->device->ecc_buffer;
+    if(header->ecc_enabled) {
+        uint8_t ecc_size = partition->device->ecc_size;
+        memcpy(ecc_buffer, data_buffer + sizeof(subpageheader_s), ecc_size);
+        memset(data_buffer + sizeof(subpageheader_s), 0x00, ecc_size);
+        uint8_t result = Hamming_Verify256x((uint8_t*) data_buffer,
+                                            partition->device->subpage_size,
+                                            (uint8_t*) ecc_buffer);
+
+        if(result != Hamming_ERROR_NONE && result != Hamming_ERROR_SINGLEBIT) {
+            return E_CORRUPT_PAGE;
+        } else if(result == Hamming_ERROR_SINGLEBIT) {
+            // We need to update the header in case that the flipped bit was in there
+            memcpy(header, partition->device->page_buffer, sizeof(subpageheader_s));
+        }
+
+        data_buffer += ecc_size;
+    }
+
+    data_buffer += sizeof(subpageheader_s);
+
+    memcpy(buffer, data_buffer, header->data_length);
     return E_FTL_SUCCESS;
 }
