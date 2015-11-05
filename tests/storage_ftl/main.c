@@ -26,8 +26,8 @@
 #include "embUnit.h"
 #include "xtimer.h"
 #include "lpm.h"
-#include "fs/flash_sim.h"
-#include "fs/ftl.h"
+#include "storage/flash_sim.h"
+#include "storage/ftl.h"
 
 // flash_sim fs;
 // flash_sim_error_t ret;

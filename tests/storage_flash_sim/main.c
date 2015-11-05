@@ -25,7 +25,7 @@
 #include "embUnit.h"
 #include "xtimer.h"
 #include "lpm.h"
-#include "fs/flash_sim.h"
+#include "storage/flash_sim.h"
 
 flash_sim fs;
 flash_sim_error_t ret;

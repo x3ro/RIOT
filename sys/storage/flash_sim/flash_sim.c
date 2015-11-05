@@ -6,7 +6,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "fs/flash_sim.h"
+#include "storage/flash_sim.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"

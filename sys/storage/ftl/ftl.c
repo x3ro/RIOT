@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "fs/ftl.h"
-#include "fs/flash_sim.h"
+#include "storage/ftl.h"
+#include "storage/flash_sim.h"
 #include "ecc/hamming256.h"
 
 #define ENABLE_DEBUG (1)
