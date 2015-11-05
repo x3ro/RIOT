@@ -45,7 +45,7 @@ extern "C" {
  *  \param size  Data size in bytes.
  *  \param code  Codes buffer.
  */
-void Hamming_Compute256x( const uint8_t *data, uint32_t size, uint8_t* code );
+void Hamming_Compute256x( const uint8_t *data, uint32_t size, uint8_t *code );
 
 
 
@@ -61,7 +61,7 @@ void Hamming_Compute256x( const uint8_t *data, uint32_t size, uint8_t* code );
  *  \param size  Size of the data in bytes.
  *  \param code  Original codes.
  */
-uint8_t Hamming_Verify256x( uint8_t* data, uint32_t size, const uint8_t* code );
+uint8_t Hamming_Verify256x( uint8_t *data, uint32_t size, const uint8_t *code );
 
 
 #ifdef __cplusplus

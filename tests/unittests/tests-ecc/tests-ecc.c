@@ -24,6 +24,7 @@ static void test_single(void)
     uint8_t data[256];
     uint8_t ecc[3];
     uint8_t result;
+
     memset(data, 0xAB, 256);
 
     Hamming_Compute256x(data, 256, ecc);
@@ -50,6 +51,7 @@ static void test_padding(void)
     uint8_t data[203];
     uint8_t ecc[3];
     uint8_t result;
+
     memset(data, 0xAB, 203);
 
     Hamming_Compute256x(data, 203, ecc);
@@ -79,7 +81,7 @@ TestRef test_all(void)
     };
 
     EMB_UNIT_TESTCALLER(EccTest, 0, 0, fixtures);
-    return (TestRef)&EccTest;
+    return (TestRef) & EccTest;
 }
 
 void tests_ecc(void)

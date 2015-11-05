@@ -56,10 +56,8 @@ static uint8_t CountBitsInByte(uint8_t byte)
 {
     uint8_t count = 0;
 
-    while (byte > 0)
-    {
-        if (byte & 1)
-        {
+    while (byte > 0) {
+        if (byte & 1) {
             count++;
         }
         byte >>= 1;
@@ -95,11 +93,10 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
 
     // Xor all bytes together to get the column sum;
     // At the same time, calculate the even and odd line codes
-    for (i=0; i < 256; i++)
-    {
+    for (i = 0; i < 256; i++) {
         // Allow non-multiples of 256 to be calculated by padding the data with zeroes
         uint8_t current = 0;
-        if(i < ((uint16_t)(256-padding))) {
+        if (i < ((uint16_t)(256 - padding))) {
             current = data[i];
         }
 
@@ -107,8 +104,7 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
 
         // If the xor sum of the byte is 0, then this byte has no incidence on
         // the computed code; so check if the sum is 1.
-        if ((CountBitsInByte(current) & 1) == 1)
-        {
+        if ((CountBitsInByte(current) & 1) == 1) {
             // Parity groups are formed by forcing a particular index bit to 0
             // (even) or 1 (odd).
             // Example on one byte:
@@ -144,10 +140,8 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
 
     // At this point, we have the line parities, and the column sum. First, We
     // must caculate the parity group values on the column sum.
-    for (i=0; i < 8; i++)
-    {
-        if (columnSum & 1)
-        {
+    for (i = 0; i < 8; i++) {
+        if (columnSum & 1) {
             evenColumnCode ^= (7 - i);
             oddColumnCode ^= i;
         }
@@ -164,42 +158,35 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
     code[1] = 0;
     code[2] = 0;
 
-    for (i=0; i < 4; i++)
-    {
+    for (i = 0; i < 4; i++) {
         code[0] <<= 2;
         code[1] <<= 2;
         code[2] <<= 2;
 
         // Line 1
-        if ((oddLineCode & 0x80) != 0)
-        {
+        if ((oddLineCode & 0x80) != 0) {
             code[0] |= 2;
         }
 
-        if ((evenLineCode & 0x80) != 0)
-        {
+        if ((evenLineCode & 0x80) != 0) {
             code[0] |= 1;
         }
 
         // Line 2
-        if ((oddLineCode & 0x08) != 0)
-        {
+        if ((oddLineCode & 0x08) != 0) {
             code[1] |= 2;
         }
 
-        if ((evenLineCode & 0x08) != 0)
-        {
+        if ((evenLineCode & 0x08) != 0) {
             code[1] |= 1;
         }
 
         // Column
-        if ((oddColumnCode & 0x04) != 0)
-        {
+        if ((oddColumnCode & 0x04) != 0) {
             code[2] |= 2;
         }
 
-        if ((evenColumnCode & 0x04) != 0)
-        {
+        if ((evenColumnCode & 0x04) != 0) {
             code[2] |= 1;
         }
 
@@ -215,7 +202,7 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
     code[2] = (~(uint32_t)code[2]);
 
     DEBUG("Computed code = %02X %02X %02X\n\r",
-              code[0], code[1], code[2]);
+          code[0], code[1], code[2]);
 }
 
 /**
@@ -229,33 +216,31 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
  *
  *  \return 0 if there is no error, otherwise returns a HAMMING_ERROR code.
  */
-uint8_t Verify256( uint8_t* pucData, const uint8_t* pucOriginalCode, uint8_t padding )
+uint8_t Verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t padding )
 {
     /* Calculate new code */
-    uint8_t computedCode[3] ;
-    uint8_t correctionCode[3] ;
+    uint8_t computedCode[3];
+    uint8_t correctionCode[3];
 
-    Compute256( pucData, computedCode, padding) ;
+    Compute256( pucData, computedCode, padding);
 
     /* Xor both codes together */
-    correctionCode[0] = computedCode[0] ^ pucOriginalCode[0] ;
-    correctionCode[1] = computedCode[1] ^ pucOriginalCode[1] ;
-    correctionCode[2] = computedCode[2] ^ pucOriginalCode[2] ;
+    correctionCode[0] = computedCode[0] ^ pucOriginalCode[0];
+    correctionCode[1] = computedCode[1] ^ pucOriginalCode[1];
+    correctionCode[2] = computedCode[2] ^ pucOriginalCode[2];
 
-    DEBUG( "Correction code = %02X %02X %02X\n\r", correctionCode[0], correctionCode[1], correctionCode[2] ) ;
+    DEBUG( "Correction code = %02X %02X %02X\n\r", correctionCode[0], correctionCode[1], correctionCode[2] );
 
     // If all bytes are 0, there is no error
-    if ( (correctionCode[0] == 0) && (correctionCode[1] == 0) && (correctionCode[2] == 0) )
-    {
-        return 0 ;
+    if ( (correctionCode[0] == 0) && (correctionCode[1] == 0) && (correctionCode[2] == 0) ) {
+        return 0;
     }
 
     /* If there is a single bit error, there are 11 bits set to 1 */
-    if ( CountBitsInCode256( correctionCode ) == 11 )
-    {
+    if ( CountBitsInCode256( correctionCode ) == 11 ) {
         // Get byte and bit indexes
-        uint8_t byte ;
-        uint8_t bit ;
+        uint8_t byte;
+        uint8_t bit;
 
         byte = correctionCode[0] & 0x80;
         byte |= (correctionCode[0] << 1) & 0x40;
@@ -272,21 +257,19 @@ uint8_t Verify256( uint8_t* pucData, const uint8_t* pucOriginalCode, uint8_t pad
         bit |= (correctionCode[2] >> 3) & 0x01;
 
         /* Correct bit */
-        DEBUG("Correcting byte #%d at bit %d\n\r", byte, bit ) ;
-        pucData[byte] ^= (1 << bit) ;
+        DEBUG("Correcting byte #%d at bit %d\n\r", byte, bit );
+        pucData[byte] ^= (1 << bit);
 
-        return Hamming_ERROR_SINGLEBIT ;
+        return Hamming_ERROR_SINGLEBIT;
     }
 
     /* Check if ECC has been corrupted */
-    if ( CountBitsInCode256( correctionCode ) == 1 )
-    {
-        return Hamming_ERROR_ECC ;
+    if ( CountBitsInCode256( correctionCode ) == 1 ) {
+        return Hamming_ERROR_ECC;
     }
     /* Otherwise, this is a multi-bit error */
-    else
-    {
-        return Hamming_ERROR_MULTIPLEBITS ;
+    else {
+        return Hamming_ERROR_MULTIPLEBITS;
     }
 }
 
@@ -301,20 +284,18 @@ uint8_t Verify256( uint8_t* pucData, const uint8_t* pucOriginalCode, uint8_t pad
  *  \param size  Data size in bytes.
  *  \param code  Codes buffer.
  */
-void Hamming_Compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t* puCode )
+void Hamming_Compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t *puCode )
 {
     DEBUG("Hamming_Compute256x()\n\r");
 
     uint8_t padding;
-    while ( dwSize > 0 )
-    {
+    while ( dwSize > 0 ) {
         padding = 0;
-        if(dwSize < 256)
-        {
+        if (dwSize < 256) {
             padding = 256 - dwSize;
         }
 
-        Compute256( pucData, puCode, padding ) ;
+        Compute256( pucData, puCode, padding );
 
         pucData += 256;
         puCode += 3;
@@ -334,32 +315,27 @@ void Hamming_Compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t* puCo
  *  \param size  Size of the data in bytes.
  *  \param code  Original codes.
  */
-uint8_t Hamming_Verify256x( uint8_t* pucData, uint32_t dwSize, const uint8_t* pucCode )
+uint8_t Hamming_Verify256x( uint8_t *pucData, uint32_t dwSize, const uint8_t *pucCode )
 {
-    uint8_t error ;
-    uint8_t result = 0 ;
+    uint8_t error;
+    uint8_t result = 0;
 
-    DEBUG( "Hamming_Verify256x()\n\r" ) ;
+    DEBUG( "Hamming_Verify256x()\n\r" );
 
     uint8_t padding;
-    while ( dwSize > 0 )
-    {
+    while ( dwSize > 0 ) {
         padding = 0;
-        if(dwSize < 256)
-        {
+        if (dwSize < 256) {
             padding = 256 - dwSize;
         }
-        error = Verify256( pucData, pucCode, padding ) ;
+        error = Verify256( pucData, pucCode, padding );
 
-        if ( error == Hamming_ERROR_SINGLEBIT )
-        {
-            result = Hamming_ERROR_SINGLEBIT ;
+        if ( error == Hamming_ERROR_SINGLEBIT ) {
+            result = Hamming_ERROR_SINGLEBIT;
         }
-        else
-        {
-            if ( error )
-            {
-                return error ;
+        else {
+            if ( error ) {
+                return error;
             }
         }
 
@@ -368,5 +344,5 @@ uint8_t Hamming_Verify256x( uint8_t* pucData, uint32_t dwSize, const uint8_t* pu
         dwSize -= (256 - padding);
     }
 
-    return result ;
+    return result;
 }
