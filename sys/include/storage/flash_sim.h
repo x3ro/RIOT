@@ -7,11 +7,11 @@
  */
 
 /**
- * @ingroup     fs
+ * @ingroup     sys_storage
  * @brief
  * @{
  *
- * @brief       Simulator of flash storage
+ * @brief       Simulates flash memory for easier testing of storage subsystems
  * @author      Lucas Jenß <lucas@x3ro.de>
  */
 

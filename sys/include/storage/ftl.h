@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     fs
+ * @ingroup     sys_storage
  * @brief
  * @{
  *

@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2015 Lucas Jenß
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
+/**
+ * @ingroup     sys_storage
+ * @brief
+ * @{
+ *
+ * @brief       Implementation of Flash Translation Layer (FTL)
+ * @author      Lucas Jenß <lucas@x3ro.de>
+ */
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
