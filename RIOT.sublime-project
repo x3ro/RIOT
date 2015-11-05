@@ -2,13 +2,13 @@
 	"folders":
 	[
         {
-            "name": "sys/fs",
-            "path": "sys/fs",
+            "name": "sys/storage",
+            "path": "sys/storage",
             "file_exclude_patterns": [".DS_Store", "._*"]
         },
         {
-            "name": "sys/include/fs",
-            "path": "sys/include/fs",
+            "name": "sys/include/storage",
+            "path": "sys/include/storage",
             "file_exclude_patterns": [".DS_Store", "._*"]
         },
 
@@ -23,8 +23,8 @@
             "file_exclude_patterns": [".DS_Store", "._*"]
         },
         {
-            "name": "tests/fs_ftl",
-            "path": "tests/fs_ftl",
+            "name": "tests/storage_ftl",
+            "path": "tests/storage_ftl",
             "file_exclude_patterns": [".DS_Store", "._*"]
         },
         {
@@ -33,8 +33,8 @@
             "file_exclude_patterns": [".DS_Store", "._*"]
         },
         {
-            "name": "tests/flash_sim",
-            "path": "tests/flash_sim",
+            "name": "tests/storage_flash_sim",
+            "path": "tests/storage_flash_sim",
             "file_exclude_patterns": [".DS_Store", "._*"]
         },
         {
