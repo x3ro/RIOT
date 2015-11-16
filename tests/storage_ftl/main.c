@@ -111,6 +111,10 @@ static void test_size_helpers(void) {
     TEST_ASSERT_EQUAL_INT(0, ftl_first_subpage_of_block(&device, 0));
     TEST_ASSERT_EQUAL_INT(4096, ftl_first_subpage_of_block(&device, 1));
     TEST_ASSERT_EQUAL_INT(172032, ftl_first_subpage_of_block(&device, 42));
+
+
+    TEST_ASSERT_EQUAL_INT(8192, ftl_subpages_in_partition(&device.index_partition));
+    TEST_ASSERT_EQUAL_INT(122880, ftl_subpages_in_partition(&device.data_partition));
 }
 
 static void test_write_read_raw(void) {

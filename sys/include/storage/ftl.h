@@ -116,6 +116,12 @@ uint8_t ftl_ecc_size(const ftl_device_s *device);
 subpageptr_t ftl_first_subpage_of_block(const ftl_device_s *device, blockptr_t block);
 subpageoffset_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enabled);
 
+/**
+ * @param  partition
+ * @return           The number of subpages which the given partition contains
+ */
+uint32_t ftl_subpages_in_partition(const ftl_partition_s *partition);
+
 
 #ifdef __cplusplus
 }

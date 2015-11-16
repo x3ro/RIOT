@@ -51,6 +51,11 @@ uint32_t ftl_device_blocksize(const ftl_device_s *device) {
     return device->pages_per_block * device->page_size;
 }
 
+uint32_t ftl_subpages_in_partition(const ftl_partition_s *partition) {
+    return partition->size * partition->device->pages_per_block *
+           (partition->device->page_size / partition->device->subpage_size);
+}
+
 uint8_t ftl_ecc_size(const ftl_device_s *device) {
     // This would be the result for the "good" Hamming algorithm
     //return (uint8_t) uint32_log2(device->subpage_size * 8) * 2;
@@ -134,9 +139,25 @@ ftl_error_t ftl_erase(const ftl_partition_s *partition, blockptr_t block) {
     return partition->device->erase(absolute_block);
 }
 
+ftl_error_t ftl_format(const ftl_partition_s *partition) {
+    uint32_t blocks = partition->size;
+    ftl_error_t ret;
+    for(uint32_t i=0; i<blocks; i++) {
+        ret = ftl_erase(partition, i);
+        if(ret != E_FTL_SUCCESS) {
+            return ret;
+        }
+    }
+    return ret;
+}
+
 ftl_error_t ftl_read_raw(const ftl_partition_s *partition,
                      char *buffer,
                      subpageptr_t subpage) {
+
+    if(subpage >= ftl_subpages_in_partition(partition)) {
+        return E_FTL_OUT_OF_RANGE;
+    }
 
     pageptr_t page = ftl_subpage_to_page(partition, subpage);
     MYDEBUG("Reading from page %u, offset=%u, size=%u\n", page,
@@ -152,6 +173,10 @@ ftl_error_t ftl_read_raw(const ftl_partition_s *partition,
 ftl_error_t ftl_write_raw(const ftl_partition_s *partition,
                      const char *buffer,
                      subpageptr_t subpage) {
+
+    if(subpage >= ftl_subpages_in_partition(partition)) {
+        return E_FTL_OUT_OF_RANGE;
+    }
 
     pageptr_t page = ftl_subpage_to_page(partition, subpage);
     MYDEBUG("Writing to page %u, offset=%u, size=%u\n", page,
