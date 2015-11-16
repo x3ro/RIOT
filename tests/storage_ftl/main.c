@@ -212,15 +212,17 @@ static void test_write_read_ecc(void) {
     TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, data_length));
 
 
+    unsigned char *u_page_buffer = (unsigned char*) page_buffer;
+
     // Fake a broken subpage that can be corrected
     ret = ftl_erase(&device.data_partition, block);
     memset(page_buffer, 0xAB, 512);
     memcpy(page_buffer, &header, sizeof(header));
     // The correct hamming code for the 0xAB sequence
-    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
-    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    u_page_buffer[3] = 0xFF; u_page_buffer[4] = 0x30; u_page_buffer[5] = 0xC3;
+    u_page_buffer[6] = 0xFF; u_page_buffer[7] = 0xFF; u_page_buffer[8] = 0xFF;
     // The flipped bit
-    page_buffer[27] = 0xAA;
+    u_page_buffer[27] = 0xAA;
     ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 
@@ -233,11 +235,11 @@ static void test_write_read_ecc(void) {
     memset(page_buffer, 0xAB, 512);
     memcpy(page_buffer, &header, sizeof(header));
     // The correct hamming code for the 0xAB sequence
-    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
-    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    u_page_buffer[3] = 0xFF; u_page_buffer[4] = 0x30; u_page_buffer[5] = 0xC3;
+    u_page_buffer[6] = 0xFF; u_page_buffer[7] = 0xFF; u_page_buffer[8] = 0xFF;
     // The flipped bit
-    page_buffer[26] = 0xAA;
-    page_buffer[27] = 0xAA;
+    u_page_buffer[26] = 0xAA;
+    u_page_buffer[27] = 0xAA;
     ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 
@@ -252,8 +254,8 @@ static void test_write_read_ecc(void) {
     memcpy(page_buffer, &header, sizeof(header));
     header.data_length += 1;
     // The correct hamming code for the 0xAB sequence
-    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
-    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    u_page_buffer[3] = 0xFF; u_page_buffer[4] = 0x30; u_page_buffer[5] = 0xC3;
+    u_page_buffer[6] = 0xFF; u_page_buffer[7] = 0xFF; u_page_buffer[8] = 0xFF;
     ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 
@@ -268,8 +270,8 @@ static void test_write_read_ecc(void) {
     header.data_length = 0xFF;
     memcpy(page_buffer, &header, sizeof(header));
     // The correct hamming code for the 0xAB sequence
-    page_buffer[3] = 0xFF; page_buffer[4] = 0x30; page_buffer[5] = 0xC3;
-    page_buffer[6] = 0xFF; page_buffer[7] = 0xFF; page_buffer[8] = 0xFF;
+    u_page_buffer[3] = 0xFF; u_page_buffer[4] = 0x30; u_page_buffer[5] = 0xC3;
+    u_page_buffer[6] = 0xFF; u_page_buffer[7] = 0xFF; u_page_buffer[8] = 0xFF;
     ret = ftl_write_raw(&device.data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
 
