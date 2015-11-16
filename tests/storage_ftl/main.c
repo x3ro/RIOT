@@ -263,6 +263,21 @@ static void test_write_read_ecc(void) {
     TEST_ASSERT_EQUAL_INT(E_CORRUPT_PAGE, ret);
 }
 
+static void test_out_of_bounds(void) {
+    ftl_error_t ret;
+
+    ret = ftl_read_raw(&device.index_partition, page_buffer, 999999);
+    TEST_ASSERT_EQUAL_INT(E_FTL_OUT_OF_RANGE, ret);
+
+    ret = ftl_read_raw(&device.data_partition, page_buffer, 999999);
+    TEST_ASSERT_EQUAL_INT(E_FTL_OUT_OF_RANGE, ret);
+
+    ret = ftl_write_raw(&device.index_partition, page_buffer, 999999);
+    TEST_ASSERT_EQUAL_INT(E_FTL_OUT_OF_RANGE, ret);
+
+    ret = ftl_write_raw(&device.data_partition, page_buffer, 999999);
+    TEST_ASSERT_EQUAL_INT(E_FTL_OUT_OF_RANGE, ret);
+}
 
 Test *testsrunner(void) {
     EMB_UNIT_TESTFIXTURES(fixtures) {
@@ -272,6 +287,7 @@ Test *testsrunner(void) {
         new_TestFixture(test_write_read_raw),
         new_TestFixture(test_write_read),
         new_TestFixture(test_write_read_ecc),
+        new_TestFixture(test_out_of_bounds),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);
