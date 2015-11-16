@@ -22,6 +22,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "storage/ftl.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -57,6 +59,21 @@ flash_sim_error_t flash_sim_write(const flash_sim *fs, const void *buffer, uint3
 flash_sim_error_t flash_sim_erase(const flash_sim *fs, uint32_t block);
 flash_sim_error_t flash_sim_read_partial(const flash_sim *fs, void *buffer, uint32_t page, uint32_t offset, uint32_t length);
 flash_sim_error_t flash_sim_write_partial(const flash_sim *fs, const void *buffer, uint32_t page, uint32_t offset, uint32_t length);
+
+
+ftl_error_t flash_sim_ftl_write(flash_sim *fs,
+                  const char *buffer,
+                  pageptr_t page,
+                  uint32_t offset,
+                  uint16_t length);
+
+ftl_error_t flash_sim_ftl_read(flash_sim *fs,
+                 char *buffer,
+                 pageptr_t page,
+                 uint32_t offset,
+                 uint16_t length);
+
+ftl_error_t flash_sim_ftl_erase(flash_sim *fs, blockptr_t block);
 
 
 #ifdef __cplusplus

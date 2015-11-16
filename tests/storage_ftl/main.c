@@ -56,36 +56,16 @@ char expect_buffer[FTL_SUBPAGE_SIZE];
 flash_sim fs;
 ftl_device_s device;
 
-ftl_error_t write(const char *buffer,
-                  pageptr_t page,
-                  uint32_t offset,
-                  uint16_t length) {
-
-    int ret = flash_sim_write_partial(&fs, buffer, page, offset, length);
-    if(ret != E_SUCCESS) {
-        return E_FTL_ERROR;
-    }
-    return E_FTL_SUCCESS;
+ftl_error_t write(const char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
+    return flash_sim_ftl_write(&fs, buffer, page, offset, length);
 }
 
-ftl_error_t read(char *buffer,
-                 pageptr_t page,
-                 uint32_t offset,
-                 uint16_t length) {
-
-    int ret = flash_sim_read_partial(&fs, buffer, page, offset, length);
-    if(ret != E_SUCCESS) {
-        return E_FTL_ERROR;
-    }
-    return E_FTL_SUCCESS;
+ftl_error_t read(char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
+    return flash_sim_ftl_read(&fs, buffer, page, offset, length);
 }
 
 ftl_error_t erase(blockptr_t block) {
-    int ret = flash_sim_erase(&fs, block);
-    if(ret != E_SUCCESS) {
-        return E_FTL_ERROR;
-    }
-    return E_FTL_SUCCESS;
+    return flash_sim_ftl_erase(&fs, block);
 }
 
 
