@@ -279,6 +279,34 @@ static void test_out_of_bounds(void) {
     TEST_ASSERT_EQUAL_INT(E_FTL_OUT_OF_RANGE, ret);
 }
 
+static void test_format(void) {
+    ftl_error_t ret = ftl_format(&device.index_partition);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+    ret = ftl_format(&device.data_partition);
+    TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+
+    memset(page_buffer, 0x00, 512);
+    memset(expect_buffer, 0xFF, 512);
+
+    int index_pages = device.index_partition.size * device.pages_per_block;
+    int index_subpages = index_pages * (device.page_size / device.subpage_size);
+    for(int i=0; i<index_subpages; i++) {
+        ret = ftl_read_raw(&device.index_partition, page_buffer, i);
+        TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+        TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, FTL_SUBPAGE_SIZE));
+    }
+
+    int data_pages = device.data_partition.size * device.pages_per_block;
+    int data_subpages = data_pages * (device.page_size / device.subpage_size);
+    for(int i=0; i<data_subpages; i++) {
+        ret = ftl_read_raw(&device.data_partition, page_buffer, i);
+        TEST_ASSERT_EQUAL_INT(E_FTL_SUCCESS, ret);
+        TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, FTL_SUBPAGE_SIZE));
+    }
+}
+
+
 Test *testsrunner(void) {
     EMB_UNIT_TESTFIXTURES(fixtures) {
         new_TestFixture(test_init),
@@ -288,6 +316,7 @@ Test *testsrunner(void) {
         new_TestFixture(test_write_read),
         new_TestFixture(test_write_read_ecc),
         new_TestFixture(test_out_of_bounds),
+        new_TestFixture(test_format),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);

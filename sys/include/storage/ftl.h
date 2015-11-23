@@ -89,6 +89,13 @@ ftl_error_t ftl_init(ftl_device_s *device);
 
 ftl_error_t ftl_erase(const ftl_partition_s *partition, blockptr_t block);
 
+/**
+ * Erases all blocks in a given partition
+ * @param[in]  partition
+ * @return     E_FTL_SUCCESS or the result of any failed erase operation
+ */
+ftl_error_t ftl_format(const ftl_partition_s *partition);
+
 ftl_error_t ftl_read_raw(const ftl_partition_s *partition,
                      char *buffer,
                      subpageptr_t subpage);
