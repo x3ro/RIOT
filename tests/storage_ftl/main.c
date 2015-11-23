@@ -29,25 +29,14 @@
 #include "storage/flash_sim.h"
 #include "storage/ftl.h"
 
-// flash_sim fs;
-// flash_sim_error_t ret;
-//char read_buffer[];
-// char write_buffer[512];
-// char expect_buffer[512];
 
 #define FTL_PAGE_SIZE 2048
 #define FTL_SUBPAGE_SIZE 512
-#define FTL_BLOCK_SIZE 2048*1024
-#define FTL_SUBPAGES_PER_PAGE (FTL_SUBPAGE_SIZE / FTL_SUBPAGE_SIZE)
+#define FTL_PAGES_PER_BLOCK 1024
+#define FTL_TOTAL_PAGES 32768
 
 char page_buffer[FTL_SUBPAGE_SIZE];
 char expect_buffer[FTL_SUBPAGE_SIZE];
-
-// void _reset(void) {
-//     memset(page_buffer, 0x0, 512);
-//     memset(write_buffer, 0x0, 512);
-//     memset(expect_buffer, 0x0, 512);
-// }
 
 
 
@@ -73,10 +62,10 @@ static void test_init(void) {
     device.write = write;
     device.read = read;
     device.erase = erase;
-    device.page_size = 2048;
-    device.subpage_size = 512;
-    device.pages_per_block = 1024;
-    device.total_pages = 32768;
+    device.page_size = FTL_PAGE_SIZE;
+    device.subpage_size = FTL_SUBPAGE_SIZE;
+    device.pages_per_block = FTL_PAGES_PER_BLOCK;
+    device.total_pages = FTL_TOTAL_PAGES;
 
     fs.page_size = device.page_size;
     fs.block_size = device.pages_per_block * device.page_size;
