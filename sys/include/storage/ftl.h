@@ -81,7 +81,7 @@ typedef struct ftl_device_s {
 typedef struct __attribute__((__packed__)) {
     unsigned int data_length:16;
     unsigned int ecc_enabled:1;
-    unsigned int reserved:1;
+    unsigned int reserved:7;
 } subpageheader_s;
 
 
