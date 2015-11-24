@@ -27,22 +27,22 @@ static void test_single(void)
 
     memset(data, 0xAB, 256);
 
-    Hamming_Compute256x(data, 256, ecc);
-    result = Hamming_Verify256x(data, 256, ecc);
+    hamming_compute256x(data, 256, ecc);
+    result = hamming_verify256x(data, 256, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_NONE, result);
 
     data[10] |= (2 << 3);
-    result = Hamming_Verify256x(data, 256, ecc);
+    result = hamming_verify256x(data, 256, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_SINGLEBIT, result);
 
     data[10] |= (2 << 3);
     data[20] |= (2 << 5);
-    result = Hamming_Verify256x(data, 256, ecc);
+    result = hamming_verify256x(data, 256, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_MULTIPLEBITS, result);
 
     memset(data, 0xAB, 256);
     ecc[1] ^= 1; // Flip first bit, corrupting the ECC
-    result = Hamming_Verify256x(data, 256, ecc);
+    result = hamming_verify256x(data, 256, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_ECC, result);
 }
 
@@ -54,22 +54,22 @@ static void test_padding(void)
 
     memset(data, 0xAB, 203);
 
-    Hamming_Compute256x(data, 203, ecc);
-    result = Hamming_Verify256x(data, 203, ecc);
+    hamming_compute256x(data, 203, ecc);
+    result = hamming_verify256x(data, 203, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_NONE, result);
 
     data[10] |= (2 << 3);
-    result = Hamming_Verify256x(data, 203, ecc);
+    result = hamming_verify256x(data, 203, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_SINGLEBIT, result);
 
     data[10] |= (2 << 3);
     data[20] |= (2 << 5);
-    result = Hamming_Verify256x(data, 203, ecc);
+    result = hamming_verify256x(data, 203, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_MULTIPLEBITS, result);
 
     memset(data, 0xAB, 203);
     ecc[1] ^= 1; // Flip first bit, corrupting the ECC
-    result = Hamming_Verify256x(data, 203, ecc);
+    result = hamming_verify256x(data, 203, ecc);
     TEST_ASSERT_EQUAL_INT(Hamming_ERROR_ECC, result);
 }
 

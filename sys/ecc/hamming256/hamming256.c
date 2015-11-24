@@ -27,7 +27,7 @@
  * ----------------------------------------------------------------------------
  */
 /**
- * \file
+ * @file
  *
  * Implementation of the hamming code functions.
  *
@@ -40,49 +40,32 @@
 
 #include <stdint.h>
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 #include "ecc/hamming256.h"
+#include "bitarithm.h"
 
 /*----------------------------------------------------------------------------
  *         Internal function
  *----------------------------------------------------------------------------*/
 
 /**
- *  Counts and return the number of bits set to '1' in the given byte.
- *  \param byte  Byte to count.
- */
-static uint8_t CountBitsInByte(uint8_t byte)
-{
-    uint8_t count = 0;
-
-    while (byte > 0) {
-        if (byte & 1) {
-            count++;
-        }
-        byte >>= 1;
-    }
-
-    return count;
-}
-
-/**
  *  Counts and return the number of bits set to '1' in the given hamming code.
- *  \param code  Hamming code.
+ *  @param code  Hamming code.
  */
-static uint8_t CountBitsInCode256(uint8_t *code)
+static uint8_t count_bits_in_code256(uint8_t *code)
 {
-    return CountBitsInByte(code[0]) + CountBitsInByte(code[1]) + CountBitsInByte(code[2]);
+    return  bitarithm_bits_set(code[0]) +  bitarithm_bits_set(code[1]) +  bitarithm_bits_set(code[2]);
 }
 
 /**
  *  Calculates the 22-bit hamming code for a 256-bytes block of data.
- *  \param data  Data buffer to calculate code for.
- *  \param code  Pointer to a buffer where the code should be stored.
- *  \param padding Amount of zeroes to be appended to the data such that it sizes
+ *  @param data  Data buffer to calculate code for.
+ *  @param code  Pointer to a buffer where the code should be stored.
+ *  @param padding Amount of zeroes to be appended to the data such that it sizes
  *                 equals 256 bytes
  */
-static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
+static void compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
 {
     uint32_t i;
     uint8_t columnSum = 0;
@@ -104,7 +87,7 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
 
         // If the xor sum of the byte is 0, then this byte has no incidence on
         // the computed code; so check if the sum is 1.
-        if ((CountBitsInByte(current) & 1) == 1) {
+        if (( bitarithm_bits_set(current) & 1) == 1) {
             // Parity groups are formed by forcing a particular index bit to 0
             // (even) or 1 (odd).
             // Example on one byte:
@@ -209,20 +192,20 @@ static void Compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
  *  Verifies and corrects a 256-bytes block of data using the given 22-bits
  *  hamming code.
  *
- *  \param data  Data buffer to check.
- *  \param originalCode  Hamming code to use for verifying the data.
- *  \param padding Amount of zeroes to be appended to the data such that it sizes
+ *  @param data  Data buffer to check.
+ *  @param originalCode  Hamming code to use for verifying the data.
+ *  @param padding Amount of zeroes to be appended to the data such that it sizes
  *                 equals 256 bytes
  *
- *  \return 0 if there is no error, otherwise returns a HAMMING_ERROR code.
+ *  @return 0 if there is no error, otherwise returns a HAMMING_ERROR code.
  */
-uint8_t Verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t padding )
+uint8_t verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t padding )
 {
     /* Calculate new code */
     uint8_t computedCode[3];
     uint8_t correctionCode[3];
 
-    Compute256( pucData, computedCode, padding);
+    compute256( pucData, computedCode, padding);
 
     /* Xor both codes together */
     correctionCode[0] = computedCode[0] ^ pucOriginalCode[0];
@@ -237,7 +220,7 @@ uint8_t Verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t pad
     }
 
     /* If there is a single bit error, there are 11 bits set to 1 */
-    if ( CountBitsInCode256( correctionCode ) == 11 ) {
+    if ( count_bits_in_code256( correctionCode ) == 11 ) {
         // Get byte and bit indexes
         uint8_t byte;
         uint8_t bit;
@@ -264,7 +247,7 @@ uint8_t Verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t pad
     }
 
     /* Check if ECC has been corrupted */
-    if ( CountBitsInCode256( correctionCode ) == 1 ) {
+    if ( count_bits_in_code256( correctionCode ) == 1 ) {
         return Hamming_ERROR_ECC;
     }
     /* Otherwise, this is a multi-bit error */
@@ -280,13 +263,13 @@ uint8_t Verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t pad
 /**
  *  Computes 3-bytes hamming codes for a data block whose size is multiple of
  *  256 bytes. Each 256 bytes block gets its own code.
- *  \param data  Data to compute code for.
- *  \param size  Data size in bytes.
- *  \param code  Codes buffer.
+ *  @param data  Data to compute code for.
+ *  @param size  Data size in bytes.
+ *  @param code  Codes buffer.
  */
-void Hamming_Compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t *puCode )
+void hamming_compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t *puCode )
 {
-    DEBUG("Hamming_Compute256x()\n\r");
+    DEBUG("hamming_compute256x()\n\r");
 
     uint8_t padding;
     while ( dwSize > 0 ) {
@@ -295,7 +278,7 @@ void Hamming_Compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t *puCo
             padding = 256 - dwSize;
         }
 
-        Compute256( pucData, puCode, padding );
+        compute256( pucData, puCode, padding );
 
         pucData += 256;
         puCode += 3;
@@ -307,20 +290,20 @@ void Hamming_Compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t *puCo
  *  Verifies 3-bytes hamming codes for a data block whose size is multiple of
  *  256 bytes. Each 256-bytes block is verified with its own code.
  *
- *  \return 0 if the data is correct, Hamming_ERROR_SINGLEBIT if one or more
+ *  @return 0 if the data is correct, Hamming_ERROR_SINGLEBIT if one or more
  *  block(s) have had a single bit corrected, or either Hamming_ERROR_ECC
  *  or Hamming_ERROR_MULTIPLEBITS.
  *
- *  \param data  Data buffer to verify.
- *  \param size  Size of the data in bytes.
- *  \param code  Original codes.
+ *  @param data  Data buffer to verify.
+ *  @param size  Size of the data in bytes.
+ *  @param code  Original codes.
  */
-uint8_t Hamming_Verify256x( uint8_t *pucData, uint32_t dwSize, const uint8_t *pucCode )
+uint8_t hamming_verify256x( uint8_t *pucData, uint32_t dwSize, const uint8_t *pucCode )
 {
     uint8_t error;
     uint8_t result = 0;
 
-    DEBUG( "Hamming_Verify256x()\n\r" );
+    DEBUG( "hamming_verify256x()\n\r" );
 
     uint8_t padding;
     while ( dwSize > 0 ) {
@@ -328,7 +311,7 @@ uint8_t Hamming_Verify256x( uint8_t *pucData, uint32_t dwSize, const uint8_t *pu
         if (dwSize < 256) {
             padding = 256 - dwSize;
         }
-        error = Verify256( pucData, pucCode, padding );
+        error = verify256( pucData, pucCode, padding );
 
         if ( error == Hamming_ERROR_SINGLEBIT ) {
             result = Hamming_ERROR_SINGLEBIT;
