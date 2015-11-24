@@ -73,6 +73,9 @@ endif
 ifneq (,$(filter ftl,$(USEMODULE)))
     DIRS += storage/ftl
 endif
+ifneq (,$(filter osl,$(USEMODULE)))
+    DIRS += storage/osl
+endif
 
 ifneq (,$(filter hamming256,$(USEMODULE)))
     DIRS += ecc/hamming256

@@ -416,6 +416,10 @@ ifneq (,$(filter phydat,$(USEMODULE)))
   USEMODULE += fmt
 endif
 
+ifneq (,$(filter osl,$(USEMODULE)))
+  USEMODULE += ftl
+endif
+
 ifneq (,$(filter ftl,$(USEMODULE)))
   USEMODULE += hamming256
 endif
