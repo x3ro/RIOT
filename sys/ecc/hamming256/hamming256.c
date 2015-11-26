@@ -55,7 +55,7 @@
  */
 static uint8_t count_bits_in_code256(uint8_t *code)
 {
-    return  bitarithm_bits_set(code[0]) +  bitarithm_bits_set(code[1]) +  bitarithm_bits_set(code[2]);
+    return bitarithm_bits_set(code[0]) +  bitarithm_bits_set(code[1]) +  bitarithm_bits_set(code[2]);
 }
 
 /**
@@ -91,7 +91,7 @@ static void compute256(const uint8_t *data, uint8_t *code, uint8_t padding)
          * If the xor sum of the byte is 0, then this byte has no incidence on
          * the computed code; so check if the sum is 1.
          */
-        if (( bitarithm_bits_set(current) & 1) == 1) {
+        if ((bitarithm_bits_set(current) & 1) == 1) {
             /*
              * Parity groups are formed by forcing a particular index bit to 0
              * (even) or 1 (odd).
@@ -224,12 +224,12 @@ uint8_t verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t pad
     DEBUG( "Correction code = %02X %02X %02X\n\r", correctionCode[0], correctionCode[1], correctionCode[2] );
 
     /* If all bytes are 0, there is no error */
-    if ( (correctionCode[0] == 0) && (correctionCode[1] == 0) && (correctionCode[2] == 0) ) {
+    if ((correctionCode[0] == 0) && (correctionCode[1] == 0) && (correctionCode[2] == 0)) {
         return 0;
     }
 
     /* If there is a single bit error, there are 11 bits set to 1 */
-    if ( count_bits_in_code256( correctionCode ) == 11 ) {
+    if (count_bits_in_code256( correctionCode ) == 11) {
         /* Get byte and bit indexes */
         uint8_t byte;
         uint8_t bit;
@@ -256,7 +256,7 @@ uint8_t verify256( uint8_t *pucData, const uint8_t *pucOriginalCode, uint8_t pad
     }
 
     /* Check if ECC has been corrupted */
-    if ( count_bits_in_code256( correctionCode ) == 1 ) {
+    if (count_bits_in_code256( correctionCode ) == 1) {
         return Hamming_ERROR_ECC;
     }
     /* Otherwise, this is a multi-bit error */
@@ -274,7 +274,7 @@ void hamming_compute256x( const uint8_t *pucData, uint32_t dwSize, uint8_t *puCo
     DEBUG("hamming_compute256x()\n\r");
 
     uint8_t padding;
-    while ( dwSize > 0 ) {
+    while (dwSize > 0) {
         padding = 0;
         if (dwSize < 256) {
             padding = 256 - dwSize;
@@ -296,18 +296,18 @@ uint8_t hamming_verify256x( uint8_t *pucData, uint32_t dwSize, const uint8_t *pu
     DEBUG( "hamming_verify256x()\n\r" );
 
     uint8_t padding;
-    while ( dwSize > 0 ) {
+    while (dwSize > 0) {
         padding = 0;
         if (dwSize < 256) {
             padding = 256 - dwSize;
         }
         error = verify256( pucData, pucCode, padding );
 
-        if ( error == Hamming_ERROR_SINGLEBIT ) {
+        if (error == Hamming_ERROR_SINGLEBIT) {
             result = Hamming_ERROR_SINGLEBIT;
         }
         else {
-            if ( error ) {
+            if (error) {
                 return error;
             }
         }
