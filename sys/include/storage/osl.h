@@ -29,7 +29,7 @@ extern "C" {
 
 
 #define OSL_MAX_OPEN_COLLECTIONS 8
-#define OSL_MAX_NAME_LENGTH 15
+#define OSL_MAX_NAME_LENGTH 31
 
 
 

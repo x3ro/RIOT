@@ -58,6 +58,11 @@ int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
 
     int record_offset = osl->page_buffer_cursor;
 
+    if( (record_offset + sizeof(osl_record_header_s) + record->length) >= osl->page_buffer_size ) {
+        MYDEBUG("Tried to write past the page buffer. Flushing to flash should come here.\n");
+        return -EIO;
+    }
+
     memcpy( osl->page_buffer + osl->page_buffer_cursor,
             record,
             sizeof(osl_record_header_s));

@@ -135,11 +135,31 @@ static void test_stream(void) {
 
 // TODO: Test osl_stream_new errors, filename too long and too many open objects
 
+static void test_stream_beyond_buffer(void) {
+    osl_cd stream = osl_stream_new(&osl, "test:large_stream", sizeof(uint64_t));
+    TEST_ASSERT(stream.index >= 0);
+
+    int ret;
+    uint64_t x;
+
+    for(int i=0; i < 300; i++) {
+        x = i;
+        ret = osl_stream_append(&stream, &x);
+        TEST_ASSERT_EQUAL_INT(0, ret);
+    }
+
+    for(int i=0; i < 300; i++) {
+        ret = osl_stream_append(&stream, &x);
+        TEST_ASSERT_EQUAL_INT(i, x);
+    }
+}
+
 Test *testsrunner(void) {
     EMB_UNIT_TESTFIXTURES(fixtures) {
         new_TestFixture(test_init_ftl),
         new_TestFixture(test_init_osl),
         new_TestFixture(test_stream),
+        new_TestFixture(test_stream_beyond_buffer),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);
