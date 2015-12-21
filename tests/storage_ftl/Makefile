@@ -3,8 +3,15 @@ include ../Makefile.tests_common
 
 USEMODULE += embunit
 USEMODULE += xtimer
-USEMODULE += flash_sim
 USEMODULE += ftl
+
+ifneq (,$(filter msba2,$(BOARD)))
+	USEMODULE += mci
+endif
+
+ifneq (,$(filter native,$(BOARD)))
+	USEMODULE += flash_sim
+endif
 
 USEPKG += libfixmath
 

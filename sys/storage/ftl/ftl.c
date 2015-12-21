@@ -137,12 +137,14 @@ int ftl_erase(const ftl_partition_s *partition, blockptr_t block) {
         return -EFAULT;
     }
 
+    MYDEBUG("Erasing block=%lu\n", (unsigned long) absolute_block);
+
     return partition->device->erase(absolute_block);
 }
 
 int ftl_format(const ftl_partition_s *partition) {
     uint32_t blocks = partition->size;
-    int ret;
+    int ret = 0;
     for(uint32_t i=0; i<blocks; i++) {
         ret = ftl_erase(partition, i);
         if(ret != 0) {
@@ -161,9 +163,9 @@ int ftl_read_raw(const ftl_partition_s *partition,
     }
 
     pageptr_t page = ftl_subpage_to_page(partition, subpage);
-    MYDEBUG("Reading from page %u, offset=%u, size=%u\n", page,
-        ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
-        partition->device->subpage_size);
+    MYDEBUG("Reading from page %lu, offset=%lu, size=%lu\n", (unsigned long) page,
+        (unsigned long) ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
+        (unsigned long) partition->device->subpage_size);
 
     return partition->device->read(buffer,
                                    page,
@@ -175,14 +177,17 @@ int ftl_write_raw(const ftl_partition_s *partition,
                      const char *buffer,
                      subpageptr_t subpage) {
 
+    printf("subpage: %lu, subpages in partition: %lu\n", (unsigned long) subpage,
+        (unsigned long) ftl_subpages_in_partition(partition));
+
     if(subpage >= ftl_subpages_in_partition(partition)) {
         return -EFAULT;
     }
 
     pageptr_t page = ftl_subpage_to_page(partition, subpage);
-    MYDEBUG("Writing to page %u, offset=%u, size=%u\n", page,
-        ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
-        partition->device->subpage_size);
+    MYDEBUG("Writing to page %lu, offset=%lu, size=%lu\n", (unsigned long) page,
+        (unsigned long) ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
+        (unsigned long) partition->device->subpage_size);
 
      return partition->device->write(
         buffer,
@@ -202,7 +207,7 @@ int ftl_write(const ftl_partition_s *partition,
         return -EFBIG;
     }
 
-    MYDEBUG("Writing to subpage %d\n", subpage);
+    MYDEBUG("Writing to subpage %d\n", (int) subpage);
 
     header.data_length = data_length;
     header.ecc_enabled = 0;
@@ -225,7 +230,7 @@ int ftl_write_ecc(const ftl_partition_s *partition,
         return -EFBIG;
     }
 
-    MYDEBUG("Writing to subpage %d w/ ECC\n", subpage);
+    MYDEBUG("Writing to subpage %d w/ ECC\n", (int) subpage);
 
     header.data_length = data_length;
     header.ecc_enabled = 1;
