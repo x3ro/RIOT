@@ -308,3 +308,7 @@ int ftl_read(const ftl_partition_s *partition,
     memcpy(buffer, data_buffer, header->data_length);
     return 0;
 }
+
+bool ftl_is_initialized(const ftl_device_s *device) {
+    return (device->page_buffer != 0);
+}

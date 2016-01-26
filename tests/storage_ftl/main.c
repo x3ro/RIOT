@@ -107,6 +107,8 @@ char expect_buffer[FTL_SUBPAGE_SIZE];
 #ifdef BOARD_NATIVE
 
 static void test_init(void) {
+    TEST_ASSERT_EQUAL_INT(false, ftl_is_initialized(&device));
+
     device.write = write;
     device.read = read;
     device.erase = erase;
@@ -118,10 +120,13 @@ static void test_init(void) {
     fs.page_size = device.page_size;
     fs.block_size = device.pages_per_block * device.page_size;
     fs.storage_size = device.total_pages * device.page_size;
+
     int ret = flash_sim_init(&fs);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
+    TEST_ASSERT_EQUAL_INT(false, ftl_is_initialized(&device));
     ret = ftl_init(&device);
+    TEST_ASSERT_EQUAL_INT(true, ftl_is_initialized(&device));
     TEST_ASSERT(device.index_partition.device != 0);
     TEST_ASSERT_EQUAL_INT(0, device.index_partition.base_offset);
     TEST_ASSERT_EQUAL_INT(2, device.index_partition.size);

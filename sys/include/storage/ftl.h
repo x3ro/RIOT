@@ -384,6 +384,8 @@ subpageoffset_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enable
  */
 uint32_t ftl_subpages_in_partition(const ftl_partition_s *partition);
 
+bool ftl_is_initialized(const ftl_device_s *device);
+
 /** @} */
 
 #ifdef __cplusplus
