@@ -47,6 +47,9 @@ flash_sim fs;
 #define FTL_PAGES_PER_BLOCK 1024
 #define FTL_TOTAL_PAGES 32768
 
+#define TEST_FTL_HEADER_SIZE 3 // sizeof(subpageheader_s)
+#define TEST_FTL_ECC_SIZE 6
+
 /* Functions for a flash_sim based FTL device */
 
 int write(const char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
@@ -200,6 +203,11 @@ static void test_ecc_helpers(void) {
     TEST_ASSERT_EQUAL_INT(6, ftl_ecc_size(&test));
     test.subpage_size = 2048;
     TEST_ASSERT_EQUAL_INT(22, ftl_ecc_size(&test));
+
+    TEST_ASSERT_EQUAL_INT(FTL_SUBPAGE_SIZE - TEST_FTL_HEADER_SIZE, ftl_data_per_subpage(&device, false));
+    TEST_ASSERT_EQUAL_INT(FTL_SUBPAGE_SIZE - TEST_FTL_HEADER_SIZE - TEST_FTL_ECC_SIZE, ftl_data_per_subpage(&device, true));
+
+
 }
 
 static void test_size_helpers(void) {
@@ -283,7 +291,7 @@ static void test_write_read(void) {
 
     bool ecc_enabled = false;
     subpageoffset_t data_length = ftl_data_per_subpage(&device, ecc_enabled);
-    TEST_ASSERT_EQUAL_INT(509, data_length); // 2 bytes header removed, no ECC
+    TEST_ASSERT_EQUAL_INT(FTL_SUBPAGE_SIZE - TEST_FTL_HEADER_SIZE, data_length);
     memset(page_buffer, 0xAB, data_length);
 
     subpageptr_t subpage = ftl_first_subpage_of_block(&device, block);
@@ -311,7 +319,7 @@ static void test_write_read_ecc(void) {
 
     bool ecc_enabled = true;
     subpageoffset_t data_length = ftl_data_per_subpage(&device, ecc_enabled);
-    TEST_ASSERT_EQUAL_INT(503, data_length); // 2 bytes header + 6 ECC removed
+    TEST_ASSERT_EQUAL_INT(FTL_SUBPAGE_SIZE - TEST_FTL_HEADER_SIZE - TEST_FTL_ECC_SIZE, data_length); // 2 bytes header + 6 ECC removed
     memset(page_buffer, 0xAB, data_length);
 
     subpageptr_t subpage = ftl_first_subpage_of_block(&device, block);
