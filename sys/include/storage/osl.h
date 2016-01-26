@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 
-#define OSL_MAX_OPEN_COLLECTIONS 8
+#define OSL_MAX_OPEN_OBJECTS 8
 #define OSL_MAX_NAME_LENGTH 31
 
 
@@ -69,12 +69,12 @@ typedef struct __attribute__((__packed__)) {
 
 
 
-typedef struct osl_collection {
+typedef struct osl_object {
     char name[OSL_MAX_NAME_LENGTH+1];
     osl_record_s tail;
     uint32_t num_objects;
     uint16_t object_size;
-} osl_collection_s;
+} osl_object_s;
 
 
 
@@ -87,18 +87,21 @@ typedef struct osl_s {
     uint16_t page_buffer_cursor; /**< The first free byte in the page buffer, 0-indexed */
     unsigned char* page_buffer;
 
-    uint8_t open_collections;
-    osl_collection_s collections[OSL_MAX_OPEN_COLLECTIONS];
+    uint32_t next_data_page;  // Next page to be written in data partition
+    uint32_t next_index_page; // Next page to be written in index partition
+
+    uint8_t open_objects;
+    osl_object_s objects[OSL_MAX_OPEN_OBJECTS];
 } osl_s;
 
 /**
- * @brief A collection descriptor which references a collection which is
+ * @brief An object descriptor which references a object which is
  * currently held in memory.
  */
-typedef struct osl_cd {
+typedef struct osl_od {
     osl_s* osl;
-    int index;
-} osl_cd;
+    int index; // Index of this object in the osl_s objects array
+} osl_od;
 
 
 
@@ -109,26 +112,16 @@ typedef struct osl_cd {
  */
 int osl_init(osl_s *osl, ftl_device_s *device);
 
-
-/**
- * [osl_stream_new description]
- * @param  osl         [description]
- * @param  name        [description]
- * @param  item_size   Size of a single item in this stream
- * @return             [description]
- */
-osl_cd osl_stream_new(osl_s* osl, char* name, size_t object_size);
-osl_cd osl_stream(osl_s* osl, char* name);
-int osl_stream_append(osl_cd* cd, void* object);
-int osl_stream_get(osl_cd* cd, void* object_buffer, unsigned long index);
+// Opens a stream, or creates it if it doesnt exist
+int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size);
+int osl_stream_append(osl_od* cd, void* object);
+int osl_stream_get(osl_od* cd, void* object_buffer, unsigned long index);
 
 
 /**
- * Helper function to get the referenced collection from a collection descriptor.
- * @param  cd [description]
- * @return    [description]
+ * Helper function to get the referenced object from an object descriptor.
  */
-osl_collection_s* osl_get_collection(osl_cd* cd);
+osl_object_s* osl_get_object(osl_od* cd);
 
 
 #ifdef __cplusplus

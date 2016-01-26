@@ -39,7 +39,7 @@ int64_t _find_first_index_page(osl_s *osl) {
 
     if(ret == -ENOENT) {
         MYDEBUG("Detected empty index partition. Assuming file system is empty\n");
-        return 0;
+        return -1;
     }
 
     // for(int i=0; i < osl->device->subpage_size; i++) {
@@ -54,7 +54,7 @@ int64_t _find_first_index_page(osl_s *osl) {
 }
 
 int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
-    //osl_collection_s* collection = osl_get_collection(cd);
+    //osl_object_s* object = osl_get_object(od);
 
     int record_offset = osl->page_buffer_cursor;
 
@@ -117,6 +117,23 @@ int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s
     return -1; // TODO
 }
 
+int _osl_buffer_flush(osl_s* osl) {
+    MYDEBUG("Flushing buffer to page %d\n", osl->next_data_page);
+
+    int ret = ftl_write_ecc(&osl->device->data_partition,
+                            (char *) osl->page_buffer,
+                            osl->next_data_page,
+                            osl->page_buffer_size);
+
+    if(ret != 0) {
+        return ret;
+    }
+
+    memset(osl->page_buffer, 0, osl->page_buffer_size);
+    osl->page_buffer_cursor = 0;
+    osl->next_data_page++;
+    return 0;
+}
 
 
 int _osl_record_datum_get(osl_s* osl, osl_record_s* record, void* datum, int offset, int size) {
@@ -130,7 +147,79 @@ int _osl_record_datum_get(osl_s* osl, osl_record_s* record, void* datum, int off
     return -1; // TODO
 }
 
+int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
+    osl_record_header_s rh;
+    osl_object_s* object = osl_get_object(od);
 
+    // Initialize
+    rh.predecessor.subpage = 0;
+    rh.predecessor.offset = 0;
+    rh.is_first = 0;
+    rh.length = data_length;
+
+    if(object->num_objects == 0) {
+        rh.is_first = true;
+    } else {
+        rh.predecessor.subpage = object->tail.subpage;
+        rh.predecessor.offset = object->tail.offset;
+    }
+
+    int record_offset = _osl_buffer_write(od->osl, &rh, data);
+
+    // Buffer is full :(
+    if(record_offset == -EIO) {
+        int ret = _osl_buffer_flush(od->osl);
+        if(ret < 0) {
+            return ret;
+        }
+    } else if(record_offset < 0) {
+        return -EIO;
+    }
+
+    object->tail.subpage = od->osl->next_data_page;
+    object->tail.offset = record_offset;
+    object->num_objects++;
+
+    return 0;
+}
+
+int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
+    osl_object_s* object = osl_get_object(od);
+    if(index >= object->num_objects) {
+        MYDEBUG("Requested stream object with index out of bounds.\n");
+        return -EFAULT;
+    }
+
+    // Number of objects written after target index
+    int steps_back = object->num_objects - 1 - index;
+    MYDEBUG("Steps to take: %d\n", steps_back);
+
+    osl_record_header_s rh;
+    osl_record_s record = object->tail;
+    while(true) {
+        if(steps_back <= 0) {
+            MYDEBUG("Reached target record!\n");
+            break;
+        }
+
+        int ret = _osl_record_header_get(od->osl, &record, &rh);
+        if(ret != 0) {
+            MYDEBUG("Retrieving header failed.\n");
+            return ret;
+        }
+
+        steps_back -= rh.length / object->object_size;
+        record = rh.predecessor;
+    }
+
+    if(steps_back != 0) {
+        MYDEBUG("Record contained multiple objects. Not implemented yet.");
+        assert(false);
+    }
+
+    int ret = _osl_record_datum_get(od->osl, &record, object_buffer, 0, object->object_size);
+    return ret;
+}
 
 
 
@@ -145,6 +234,11 @@ int osl_init(osl_s *osl, ftl_device_s *device) {
     MYDEBUG("Initializing OSL\n");
     osl->device = device;
 
+    if(!ftl_is_initialized(device)) {
+        MYDEBUG("FTL was not initialized\n");
+        return -ENODEV;
+    }
+
     osl->page_buffer_size = ftl_data_per_subpage(osl->device, true);
     osl->page_buffer_cursor = 0;
     osl->page_buffer = malloc(osl->page_buffer_size);
@@ -153,103 +247,52 @@ int osl_init(osl_s *osl, ftl_device_s *device) {
         return -ENOMEM;
     }
 
-    osl->latest_index.first_page = _find_first_index_page(osl);
-    osl->open_collections = 0;
+    int64_t first_index_page = _find_first_index_page(osl);
+    if(first_index_page < 0) {
+        osl->next_data_page = 0;
+        osl->next_index_page = 0;
+        osl->latest_index.first_page = 0;
+    } else {
+        // restore index state to memory
+        return -1;
+    }
+
+    osl->open_objects = 0;
     return 0;
 }
 
-osl_cd osl_stream_new(osl_s* osl, char* name, size_t object_size) {
-    osl_cd cd;
-    cd.osl = osl;
+int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size) {
 
-    if(osl->open_collections >= OSL_MAX_OPEN_COLLECTIONS) {
-        MYDEBUG("Cannot create new stream. Too many open collections.\n");
-        cd.index = -EMFILE;
-        return cd;
+    if(osl->open_objects >= OSL_MAX_OPEN_OBJECTS) {
+        MYDEBUG("Cannot create new stream. Too many open objects.\n");
+        return -EMFILE;
     }
 
-    if(strlen(name) > OSL_MAX_NAME_LENGTH) {
+    if(strlen(name) >= OSL_MAX_NAME_LENGTH) {
         MYDEBUG("Cannot create new stream. Name too long.\n");
-        cd.index = -ENAMETOOLONG;
-        return cd;
+        return -ENAMETOOLONG;
     }
 
-    // TODO: Make sure to check if the collection already exists!!!
+    // TODO: Make sure to check if the object already exists!!!
 
-    osl_collection_s* obj = &osl->collections[osl->open_collections];
+    osl_object_s* obj = &osl->objects[osl->open_objects];
     memcpy(obj->name, name, strlen(name)+1);
     obj->object_size = object_size;
     obj->num_objects = 0;
 
-    cd.index = osl->open_collections;
-    osl->open_collections++;
-
-    return cd;
-}
-
-int osl_stream_append(osl_cd* cd, void* item) {
-    osl_record_header_s rh;
-    osl_collection_s* collection = osl_get_collection(cd);
-
-    rh.predecessor.subpage = 0;
-    rh.predecessor.offset = 0;
-    rh.is_first = 0;
-    rh.length = collection->object_size;
-
-    if(collection->num_objects == 0) {
-        rh.is_first = 1;
-    } else {
-        rh.predecessor.subpage = collection->tail.subpage;
-        rh.predecessor.offset = collection->tail.offset;
-    }
-
-    int record_offset = _osl_buffer_write(cd->osl, &rh, item);
-    if(record_offset < 0) {
-        return -EIO; // TODO proper error code
-    }
-    collection->tail.subpage = 0;
-    collection->tail.offset = record_offset;
-    collection->num_objects++;
+    od->osl = osl;
+    od->index = osl->open_objects;
+    osl->open_objects++;
 
     return 0;
 }
 
-int osl_stream_get(osl_cd* cd, void* object_buffer, unsigned long index) {
-    osl_collection_s* collection = osl_get_collection(cd);
-    if(index >= collection->num_objects) {
-        MYDEBUG("Requested stream object with index out of bounds.\n");
-        return -EFAULT;
-    }
+int osl_stream_append(osl_od* od, void* item) {
+    osl_object_s* object = osl_get_object(od);
+    return _osl_log_record_append(od, item, object->object_size);
+}
 
-    // Number of objects written after target index
-    int steps_back = collection->num_objects - 1 - index;
-    MYDEBUG("Steps to take: %d\n", steps_back);
-
-    osl_record_header_s rh;
-    osl_record_s record = collection->tail;
-    while(true) {
-        if(steps_back <= 0) {
-            MYDEBUG("Reached target record!\n");
-            break;
-        }
-
-        int ret = _osl_record_header_get(cd->osl, &record, &rh);
-        if(ret != 0) {
-            MYDEBUG("Retrieving header failed.\n");
-            return ret;
-        }
-
-        steps_back -= rh.length / collection->object_size;
-        record = rh.predecessor;
-    }
-
-    if(steps_back != 0) {
-        MYDEBUG("Record contained multiple objects. Not implemented yet.");
-        assert(false);
-    }
-
-    int ret = _osl_record_datum_get(cd->osl, &record, object_buffer, 0, collection->object_size);
-    return ret;
+int osl_stream_get(osl_od* od, void* object_buffer, unsigned long index) {
 }
 
 
@@ -262,7 +305,7 @@ int osl_stream_get(osl_cd* cd, void* object_buffer, unsigned long index) {
 
 
 
-osl_collection_s* osl_get_collection(osl_cd* cd) {
-    return &cd->osl->collections[cd->index];
+osl_object_s* osl_get_object(osl_od* od) {
+    return &od->osl->objects[od->index];
 }
 

@@ -49,6 +49,11 @@ int erase(blockptr_t block) {
 }
 
 
+static void test_init_osl_too_early(void) {
+    int ret = osl_init(&osl, &device);
+    TEST_ASSERT_EQUAL_INT(-ENODEV, ret);
+}
+
 static void test_init_ftl(void) {
     device.write = write;
     device.read = read;
@@ -82,40 +87,40 @@ static void test_init_osl(void) {
 }
 
 static void test_stream(void) {
-    osl_cd stream = osl_stream_new(&osl, "test:stream", sizeof(uint64_t));
-    TEST_ASSERT(stream.index >= 0);
+    osl_od stream;
+    int ret = osl_stream(&osl, &stream, "test:stream", sizeof(uint64_t));
+    TEST_ASSERT(ret >= 0);
     TEST_ASSERT_EQUAL_INT(0, stream.osl->page_buffer_cursor);
 
-    int ret;
     uint64_t x;
     int record_size = sizeof(osl_record_header_s) + sizeof(uint64_t);
 
-    osl_collection_s* collection = osl_get_collection(&stream);
-    TEST_ASSERT_EQUAL_INT(0, collection->num_objects);
+    osl_object_s* object = osl_get_object(&stream);
+    TEST_ASSERT_EQUAL_INT(0, object->num_objects);
 
     x = 1;
     ret = osl_stream_append(&stream, &x);
     TEST_ASSERT_EQUAL_INT(0, ret);
     TEST_ASSERT_EQUAL_INT(record_size, stream.osl->page_buffer_cursor);
-    TEST_ASSERT_EQUAL_INT(0, collection->tail.offset);
-    TEST_ASSERT_EQUAL_INT(0, collection->tail.subpage);
-    TEST_ASSERT_EQUAL_INT(1, collection->num_objects);
+    TEST_ASSERT_EQUAL_INT(0, object->tail.offset);
+    TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
+    TEST_ASSERT_EQUAL_INT(1, object->num_objects);
 
     x = 2;
     ret = osl_stream_append(&stream, &x);
     TEST_ASSERT_EQUAL_INT(0, ret);
     TEST_ASSERT_EQUAL_INT(record_size*2, stream.osl->page_buffer_cursor);
-    TEST_ASSERT_EQUAL_INT(record_size, collection->tail.offset);
-    TEST_ASSERT_EQUAL_INT(0, collection->tail.subpage);
-    TEST_ASSERT_EQUAL_INT(2, collection->num_objects);
+    TEST_ASSERT_EQUAL_INT(record_size, object->tail.offset);
+    TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
+    TEST_ASSERT_EQUAL_INT(2, object->num_objects);
 
     x = 3;
     ret = osl_stream_append(&stream, &x);
     TEST_ASSERT_EQUAL_INT(0, ret);
     TEST_ASSERT_EQUAL_INT(record_size*3, stream.osl->page_buffer_cursor);
-    TEST_ASSERT_EQUAL_INT(record_size*2, collection->tail.offset);
-    TEST_ASSERT_EQUAL_INT(0, collection->tail.subpage);
-    TEST_ASSERT_EQUAL_INT(3, collection->num_objects);
+    TEST_ASSERT_EQUAL_INT(record_size*2, object->tail.offset);
+    TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
+    TEST_ASSERT_EQUAL_INT(3, object->num_objects);
 
     ret = osl_stream_get(&stream, &x, 0);
     TEST_ASSERT_EQUAL_INT(0, ret);
@@ -136,10 +141,10 @@ static void test_stream(void) {
 // TODO: Test osl_stream_new errors, filename too long and too many open objects
 
 static void test_stream_beyond_buffer(void) {
-    osl_cd stream = osl_stream_new(&osl, "test:large_stream", sizeof(uint64_t));
-    TEST_ASSERT(stream.index >= 0);
+    osl_od stream;
+    int ret = osl_stream(&osl, &stream, "test:large_stream", sizeof(uint64_t));
+    TEST_ASSERT(ret >= 0);
 
-    int ret;
     uint64_t x;
 
     for(int i=0; i < 300; i++) {
@@ -149,13 +154,14 @@ static void test_stream_beyond_buffer(void) {
     }
 
     for(int i=0; i < 300; i++) {
-        ret = osl_stream_append(&stream, &x);
+        ret = osl_stream_get(&stream, &x, i);
         TEST_ASSERT_EQUAL_INT(i, x);
     }
 }
 
 Test *testsrunner(void) {
     EMB_UNIT_TESTFIXTURES(fixtures) {
+        new_TestFixture(test_init_osl_too_early),
         new_TestFixture(test_init_ftl),
         new_TestFixture(test_init_osl),
         new_TestFixture(test_stream),
