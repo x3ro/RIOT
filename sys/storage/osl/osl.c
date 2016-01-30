@@ -35,117 +35,150 @@
 
 int64_t _find_first_index_page(osl_s *osl) {
     subpageheader_s header;
-    int ret = ftl_read(&osl->device->index_partition, (char*)osl->page_buffer, &header, 0);
+    int ret = ftl_read(&osl->device->index_partition, (char*)osl->subpage_buffer, &header, 0);
 
     if(ret == -ENOENT) {
         MYDEBUG("Detected empty index partition. Assuming file system is empty\n");
         return -1;
     }
 
-    // for(int i=0; i < osl->device->subpage_size; i++) {
-    //     printf("%x ", osl->page_buffer[i]);
-    //     if(osl->page_buffer[i] != 0xff) {
-    //         uninitialized = false;
-    //         break;
-    //     }
-    // }
-
+    // TODO: Implement index partition scan algorithm
+    assert(false);
     return -1;
 }
 
 int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
-    //osl_object_s* object = osl_get_object(od);
+    int record_offset = osl->subpage_buffer_cursor;
 
-    int record_offset = osl->page_buffer_cursor;
-
-    if( (record_offset + sizeof(osl_record_header_s) + record->length) >= osl->page_buffer_size ) {
-        MYDEBUG("Tried to write past the page buffer. Flushing to flash should come here.\n");
+    // Trying to write past the page buffer. It needs to be flushed.
+    if( (record_offset + sizeof(osl_record_header_s) + record->length) >= osl->subpage_buffer_size ) {
         return -EIO;
     }
 
-    memcpy( osl->page_buffer + osl->page_buffer_cursor,
+    MYDEBUG("Buffering record w/ predecessor offset %d and subpage %d to offset %d\n",
+        record->predecessor.offset,
+        record->predecessor.subpage,
+        osl->subpage_buffer_cursor);
+
+    memcpy( osl->subpage_buffer + osl->subpage_buffer_cursor,
             record,
             sizeof(osl_record_header_s));
 
-    osl->page_buffer_cursor += sizeof(osl_record_header_s);
+    osl->subpage_buffer_cursor += sizeof(osl_record_header_s);
 
-    memcpy( osl->page_buffer + osl->page_buffer_cursor,
+    memcpy( osl->subpage_buffer + osl->subpage_buffer_cursor,
             item,
             record->length);
 
-    osl->page_buffer_cursor += record->length;
+    osl->subpage_buffer_cursor += record->length;
 
     return record_offset;
 }
 
-int _osl_buffer_read_header(osl_s* osl, osl_record_s* record, osl_record_header_s* rh) {
-    if(record->subpage != 0) {
-        MYDEBUG("Tried to retrieve header not in page buffer.\n");
-        return -EINVAL;
-    }
-
+int _osl_buffer_read_header(unsigned char *buffer, osl_record_s* record, osl_record_header_s* rh) {
     memcpy( rh,
-            osl->page_buffer + record->offset,
+            buffer + record->offset,
             sizeof(osl_record_header_s));
 
     return 0;
 }
 
-int _osl_buffer_read_datum(osl_s* osl, osl_record_s* record, void* datum, int offset, int size) {
-    if(record->subpage != 0) {
-        MYDEBUG("Tried to retrieve header not in page buffer.\n");
-        return -EINVAL;
-    }
-
+int _osl_buffer_read_datum(unsigned char *buffer, osl_record_s* record, void* datum, int offset, int size) {
     memcpy( datum,
-            osl->page_buffer + record->offset + sizeof(osl_record_header_s) + offset,
+            buffer + record->offset + sizeof(osl_record_header_s) + offset,
             size);
 
     return 0;
 
 }
 
-int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s* rh) {
-    // TODO: Implement for when record is not held in page buffer anymore
-    assert(record->subpage == 0);
-
-    // Record is still in page buffer
-    if(record->subpage == 0) {
-        return _osl_buffer_read_header(osl, record, rh);
+int _osl_read_page(osl_s* osl, uint32_t subpage) {
+    MYDEBUG("Reading subpage %d\n", subpage);
+    subpageheader_s header;
+    int ret = ftl_read(&osl->device->data_partition, (char*) osl->read_buffer, &header, subpage);
+    if(ret != 0) {
+        return ret;
     }
 
-    return -1; // TODO
+    osl->read_buffer_partition = OSL_DATA_PARTITION;
+    osl->read_buffer_subpage = subpage;
+    return 0;
+}
+
+int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s* rh) {
+
+    MYDEBUG("subpage %d, offset %d, next_data_subpage %d, read_buffer_subpage %d\n",
+        record->subpage,
+        record->offset,
+        osl->next_data_subpage,
+        osl->read_buffer_subpage);
+
+    if(record->subpage == osl->next_data_subpage) {
+        // Record is still in page buffer
+        return _osl_buffer_read_header(osl->subpage_buffer, record, rh);
+
+    } else if(  osl->read_buffer_partition == OSL_DATA_PARTITION &&
+                osl->read_buffer_subpage == record->subpage) {
+        // record is in read buffer
+        return _osl_buffer_read_header(osl->read_buffer, record, rh);
+
+    }
+
+    // record is not available in any buffer, lets get it
+    int ret = _osl_read_page(osl, record->subpage);
+    if(ret != 0) {
+        return ret;
+    }
+
+    // Now that the page is in the read buffer, we can safely recurse to get
+    // the subpage
+    return _osl_record_header_get(osl, record, rh);
+}
+
+int _osl_record_datum_get(osl_s* osl, osl_record_s* record, void* datum, int offset, int size) {
+
+    if(record->subpage == osl->next_data_subpage) {
+        return _osl_buffer_read_datum(osl->subpage_buffer, record, datum, offset, size);
+
+    } else if(  osl->read_buffer_partition == OSL_DATA_PARTITION &&
+                osl->read_buffer_subpage == record->subpage) {
+        return _osl_buffer_read_datum(osl->read_buffer, record, datum, offset, size);
+
+    }
+
+    // TODO: Same logic as in _osl_record_header_get, refactor!
+
+    // record is not available in any buffer, lets get it
+    int ret = _osl_read_page(osl, record->subpage);
+    if(ret != 0) {
+        return ret;
+    }
+
+    // Now that the page is in the read buffer, we can safely recurse to get
+    // the subpage
+    return _osl_record_datum_get(osl, record, datum, offset, size);
 }
 
 int _osl_buffer_flush(osl_s* osl) {
-    MYDEBUG("Flushing buffer to page %d\n", osl->next_data_page);
+    MYDEBUG("Flushing buffer to page %d\n", osl->next_data_subpage);
 
     int ret = ftl_write_ecc(&osl->device->data_partition,
-                            (char *) osl->page_buffer,
-                            osl->next_data_page,
-                            osl->page_buffer_size);
+                            (char *) osl->subpage_buffer,
+                            osl->next_data_subpage,
+                            osl->subpage_buffer_size);
 
     if(ret != 0) {
         return ret;
     }
 
-    memset(osl->page_buffer, 0, osl->page_buffer_size);
-    osl->page_buffer_cursor = 0;
-    osl->next_data_page++;
+    memset(osl->subpage_buffer, 0, osl->subpage_buffer_size);
+    osl->subpage_buffer_cursor = 0;
+    osl->next_data_subpage++;
     return 0;
 }
 
 
-int _osl_record_datum_get(osl_s* osl, osl_record_s* record, void* datum, int offset, int size) {
-    // TODO: Implement for when record is not held in page buffer anymore
-    assert(record->subpage == 0);
 
-    if(record->subpage == 0) {
-        return _osl_buffer_read_datum(osl, record, datum, offset, size);
-    }
-
-    return -1; // TODO
-}
 
 int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
     osl_record_header_s rh;
@@ -165,6 +198,8 @@ int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
     }
 
     int record_offset = _osl_buffer_write(od->osl, &rh, data);
+    MYDEBUG("returned offset %d\n", record_offset);
+
 
     // Buffer is full :(
     if(record_offset == -EIO) {
@@ -172,11 +207,13 @@ int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
         if(ret < 0) {
             return ret;
         }
+
+        return _osl_log_record_append(od, data, data_length);
     } else if(record_offset < 0) {
         return -EIO;
     }
 
-    object->tail.subpage = od->osl->next_data_page;
+    object->tail.subpage = od->osl->next_data_subpage;
     object->tail.offset = record_offset;
     object->num_objects++;
 
@@ -186,7 +223,7 @@ int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
 int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
     osl_object_s* object = osl_get_object(od);
     if(index >= object->num_objects) {
-        MYDEBUG("Requested stream object with index out of bounds.\n");
+        MYDEBUG("Requested record with index out of bounds.\n");
         return -EFAULT;
     }
 
@@ -239,19 +276,24 @@ int osl_init(osl_s *osl, ftl_device_s *device) {
         return -ENODEV;
     }
 
-    osl->page_buffer_size = ftl_data_per_subpage(osl->device, true);
-    osl->page_buffer_cursor = 0;
-    osl->page_buffer = malloc(osl->page_buffer_size);
-    if(osl->page_buffer == 0) {
-        MYDEBUG("Couldn't allocate page buffer\n");
+    osl->subpage_buffer_size = ftl_data_per_subpage(osl->device, true);
+    osl->subpage_buffer_cursor = 0;
+    osl->subpage_buffer = malloc(osl->subpage_buffer_size);
+    osl->read_buffer = malloc(osl->subpage_buffer_size);
+    if(osl->subpage_buffer == 0 || osl->read_buffer == 0) {
+        MYDEBUG("Couldn't allocate page buffers\n");
         return -ENOMEM;
     }
 
+    osl->read_buffer_partition = -1;
+    osl->read_buffer_subpage = 0;
+
     int64_t first_index_page = _find_first_index_page(osl);
     if(first_index_page < 0) {
-        osl->next_data_page = 0;
-        osl->next_index_page = 0;
+        osl->next_data_subpage = 0;
+        osl->next_index_subpage = 0;
         osl->latest_index.first_page = 0;
+
     } else {
         // restore index state to memory
         return -1;
@@ -293,17 +335,8 @@ int osl_stream_append(osl_od* od, void* item) {
 }
 
 int osl_stream_get(osl_od* od, void* object_buffer, unsigned long index) {
+    return _osl_log_record_get(od, object_buffer, index);
 }
-
-
-
-
-
-
-
-
-
-
 
 osl_object_s* osl_get_object(osl_od* od) {
     return &od->osl->objects[od->index];

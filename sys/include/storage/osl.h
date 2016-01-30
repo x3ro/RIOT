@@ -31,6 +31,9 @@ extern "C" {
 #define OSL_MAX_OPEN_OBJECTS 8
 #define OSL_MAX_NAME_LENGTH 31
 
+#define OSL_INDEX_PARTITION 0
+#define OSL_DATA_PARTITION 1
+
 
 
 
@@ -83,12 +86,16 @@ typedef struct osl_s {
 
     osl_index_entry_s latest_index;
 
-    uint16_t page_buffer_size;
-    uint16_t page_buffer_cursor; /**< The first free byte in the page buffer, 0-indexed */
-    unsigned char* page_buffer;
+    uint16_t subpage_buffer_size;
+    uint16_t subpage_buffer_cursor; /**< The first free byte in the page buffer, 0-indexed */
+    unsigned char* subpage_buffer;
 
-    uint32_t next_data_page;  // Next page to be written in data partition
-    uint32_t next_index_page; // Next page to be written in index partition
+    unsigned char* read_buffer;
+    uint32_t read_buffer_subpage;
+    int8_t read_buffer_partition; // if == -1, no page is in read buffer, 0 = index, 1 = data
+
+    uint32_t next_data_subpage;  // Next page to be written in data partition
+    uint32_t next_index_subpage; // Next page to be written in index partition
 
     uint8_t open_objects;
     osl_object_s objects[OSL_MAX_OPEN_OBJECTS];

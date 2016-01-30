@@ -84,13 +84,26 @@ static void test_init_osl(void) {
     TEST_ASSERT_EQUAL_INT(0, ret);
 
     TEST_ASSERT_EQUAL_INT(0, osl.latest_index.first_page);
+
+    TEST_ASSERT_EQUAL_INT(250, osl.subpage_buffer_size);
+    TEST_ASSERT_EQUAL_INT(0, osl.subpage_buffer_cursor);
+    TEST_ASSERT(osl.subpage_buffer != 0);
+
+    TEST_ASSERT(osl.read_buffer != 0);
+    TEST_ASSERT_EQUAL_INT(0, osl.read_buffer_subpage);
+    TEST_ASSERT_EQUAL_INT(-1, osl.read_buffer_partition);
+
+    TEST_ASSERT_EQUAL_INT(0, osl.open_objects);
+
+    TEST_ASSERT_EQUAL_INT(0, osl.next_index_subpage);
+    TEST_ASSERT_EQUAL_INT(0, osl.next_data_subpage);
 }
 
 static void test_stream(void) {
     osl_od stream;
     int ret = osl_stream(&osl, &stream, "test:stream", sizeof(uint64_t));
     TEST_ASSERT(ret >= 0);
-    TEST_ASSERT_EQUAL_INT(0, stream.osl->page_buffer_cursor);
+    TEST_ASSERT_EQUAL_INT(0, stream.osl->subpage_buffer_cursor);
 
     uint64_t x;
     int record_size = sizeof(osl_record_header_s) + sizeof(uint64_t);
@@ -101,7 +114,7 @@ static void test_stream(void) {
     x = 1;
     ret = osl_stream_append(&stream, &x);
     TEST_ASSERT_EQUAL_INT(0, ret);
-    TEST_ASSERT_EQUAL_INT(record_size, stream.osl->page_buffer_cursor);
+    TEST_ASSERT_EQUAL_INT(record_size, stream.osl->subpage_buffer_cursor);
     TEST_ASSERT_EQUAL_INT(0, object->tail.offset);
     TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
     TEST_ASSERT_EQUAL_INT(1, object->num_objects);
@@ -109,7 +122,7 @@ static void test_stream(void) {
     x = 2;
     ret = osl_stream_append(&stream, &x);
     TEST_ASSERT_EQUAL_INT(0, ret);
-    TEST_ASSERT_EQUAL_INT(record_size*2, stream.osl->page_buffer_cursor);
+    TEST_ASSERT_EQUAL_INT(record_size*2, stream.osl->subpage_buffer_cursor);
     TEST_ASSERT_EQUAL_INT(record_size, object->tail.offset);
     TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
     TEST_ASSERT_EQUAL_INT(2, object->num_objects);
@@ -117,7 +130,7 @@ static void test_stream(void) {
     x = 3;
     ret = osl_stream_append(&stream, &x);
     TEST_ASSERT_EQUAL_INT(0, ret);
-    TEST_ASSERT_EQUAL_INT(record_size*3, stream.osl->page_buffer_cursor);
+    TEST_ASSERT_EQUAL_INT(record_size*3, stream.osl->subpage_buffer_cursor);
     TEST_ASSERT_EQUAL_INT(record_size*2, object->tail.offset);
     TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
     TEST_ASSERT_EQUAL_INT(3, object->num_objects);
@@ -147,13 +160,13 @@ static void test_stream_beyond_buffer(void) {
 
     uint64_t x;
 
-    for(int i=0; i < 300; i++) {
+    for(int i=0; i < 30; i++) {
         x = i;
         ret = osl_stream_append(&stream, &x);
         TEST_ASSERT_EQUAL_INT(0, ret);
     }
 
-    for(int i=0; i < 300; i++) {
+    for(int i=0; i < 30; i++) {
         ret = osl_stream_get(&stream, &x, i);
         TEST_ASSERT_EQUAL_INT(i, x);
     }
