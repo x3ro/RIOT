@@ -160,16 +160,25 @@ static void test_stream_beyond_buffer(void) {
 
     uint64_t x;
 
-    for(int i=0; i < 30; i++) {
+
+    for(int i=0; i < 3000; i++) {
         x = i;
         ret = osl_stream_append(&stream, &x);
         TEST_ASSERT_EQUAL_INT(0, ret);
     }
+    printf("Write done\n");
 
-    for(int i=0; i < 30; i++) {
+    // for(int i=3000; i > 0; i--) {
+    //     ret = osl_stream_get(&stream, &x, i-1);
+    //     TEST_ASSERT_EQUAL_INT(i-1, x);
+    // }
+
+    for(int i=0; i < 3000; i++) {
         ret = osl_stream_get(&stream, &x, i);
+        //printf("testing %d\n", i);
         TEST_ASSERT_EQUAL_INT(i, x);
     }
+    printf("Read done\n");
 }
 
 Test *testsrunner(void) {

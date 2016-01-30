@@ -26,7 +26,7 @@
 #include "storage/flash_sim.h"
 #include "ecc/hamming256.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define MYDEBUG(...) DEBUG("%s: ", __FUNCTION__); \
@@ -59,6 +59,8 @@ int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
         record->predecessor.offset,
         record->predecessor.subpage,
         osl->subpage_buffer_cursor);
+
+    MYDEBUG("Datum: %llu\n", *(long long unsigned int*) item);
 
     memcpy( osl->subpage_buffer + osl->subpage_buffer_cursor,
             record,
@@ -220,6 +222,33 @@ int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
     return 0;
 }
 
+int _osl_record_cache_reset(osl_od* od) {
+    for(int i=0; i < OSL_RECORD_CACHE_SIZE; i++) {
+        osl_record_cache_s* c = &od->osl->record_cache[i];
+        c->index = -1;
+    }
+    od->osl->record_cache_object = od->index;
+    return 0;
+}
+
+// TODO: write test!
+osl_record_cache_s* _osl_record_cache_lookup(osl_od* od, unsigned long index) {
+    //osl_object_s* object = osl_get_object(od);
+
+    for(int i=0; i < OSL_RECORD_CACHE_SIZE; i++) {
+        osl_record_cache_s* c = &od->osl->record_cache[i];
+        if(c->index == -1) {
+            break;
+        }
+
+        if(c->index > (long long) index) {
+            return c;
+        }
+    }
+
+    return NULL;
+}
+
 int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
     osl_object_s* object = osl_get_object(od);
     if(index >= object->num_objects) {
@@ -227,12 +256,27 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
         return -EFAULT;
     }
 
-    // Number of objects written after target index
-    int steps_back = object->num_objects - 1 - index;
-    MYDEBUG("Steps to take: %d\n", steps_back);
+    if(od->osl->record_cache_object != od->index) {
+        _osl_record_cache_reset(od);
+    }
 
     osl_record_header_s rh;
-    osl_record_s record = object->tail;
+    osl_record_cache_s* cache = _osl_record_cache_lookup(od, index);
+
+    int steps_back;
+    osl_record_s record;
+    if(cache != NULL) {
+        record = cache->record;
+        steps_back = cache->index - index;
+        MYDEBUG("Found record offset %d subpage %d index %d\n", record.offset, record.subpage, cache->index);
+    } else{
+        record = object->tail;
+        // Number of objects written after target index
+        steps_back = object->num_objects - 1 - index;
+    }
+
+    MYDEBUG("Steps to take: %d\n", steps_back);
+
     while(true) {
         if(steps_back <= 0) {
             MYDEBUG("Reached target record!\n");
@@ -245,7 +289,23 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
             return ret;
         }
 
+        // If is_first is set here, we're trying to step past the beginning of the
+        // log, which is most certainly a bug.
+        assert(rh.is_first == 0);
+
         steps_back -= rh.length / object->object_size;
+
+        if(record.subpage != rh.predecessor.subpage) {
+            // Continue here, this doesnt work yet
+            // assert(false);
+            //od->osl->record_cache[0]
+            MYDEBUG("caching index %d\n", steps_back);
+            // TODO: more than one cache depth thingy
+            osl_record_cache_s* c = &od->osl->record_cache[0];
+            c->index = index + steps_back;
+            c->record = rh.predecessor;
+        }
+
         record = rh.predecessor;
     }
 
@@ -287,6 +347,8 @@ int osl_init(osl_s *osl, ftl_device_s *device) {
 
     osl->read_buffer_partition = -1;
     osl->read_buffer_subpage = 0;
+
+    osl->record_cache_object = -1;
 
     int64_t first_index_page = _find_first_index_page(osl);
     if(first_index_page < 0) {

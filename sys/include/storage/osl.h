@@ -31,6 +31,8 @@ extern "C" {
 #define OSL_MAX_OPEN_OBJECTS 8
 #define OSL_MAX_NAME_LENGTH 31
 
+#define OSL_RECORD_CACHE_SIZE 6
+
 #define OSL_INDEX_PARTITION 0
 #define OSL_DATA_PARTITION 1
 
@@ -63,6 +65,12 @@ typedef struct osl_record_s {
                              same page */
     int16_t offset;
 } osl_record_s;
+
+
+typedef struct osl_record_cache_s {
+    osl_record_s record;
+    int32_t index;
+} osl_record_cache_s;
 
 typedef struct __attribute__((__packed__)) {
     osl_record_s predecessor;
@@ -99,6 +107,10 @@ typedef struct osl_s {
 
     uint8_t open_objects;
     osl_object_s objects[OSL_MAX_OPEN_OBJECTS];
+
+    osl_record_cache_s record_cache[OSL_RECORD_CACHE_SIZE];
+    int8_t record_cache_object;
+
 } osl_s;
 
 /**
