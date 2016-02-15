@@ -63,6 +63,7 @@ ftl_device_s device = {
     .subpage_size = ${subpage_size},
     .pages_per_block = ${pages_per_block},
     .ecc_size = ${ecc_size},
+    .partition_count = ${partition_count},
 
     ._write = flash_driver_write,
     ._read = flash_driver_read,
@@ -75,8 +76,13 @@ ftl_device_s device = {
 
 ${partitions}
 
+${partition_list}
+
 int main(void)
 {
+    device.partitions = partitions;
+    ftl_init(&device);
+
     printf("You are running RIOT on a(n) %s board %d.\n", RIOT_BOARD, device.total_pages);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
 

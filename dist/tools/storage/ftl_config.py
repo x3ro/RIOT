@@ -98,6 +98,7 @@ template = template_file.read()
 t = Template(template)
 
 partitions = ""
+partition_list = []
 base_offset = 0
 for partition in zip(args.partition_name, args.partition_size):
     size = 0
@@ -106,15 +107,20 @@ for partition in zip(args.partition_name, args.partition_size):
     else:
         size = int(partition[1])
 
-    #partitions += "    ftl_partition_s {0}_partition;\n".format(partition[0])
     partitions += """
 ftl_partition_s {0}_partition = {{
     .device = &device,
     .base_offset = {1},
     .size = {2},
+    .next_page = 0,
+    .erased_until = 0,
+    .free_until = 0
 }};\n\n""".format(partition[0], base_offset, size)
 
+    partition_list.append("&{0}_partition".format(partition[0]))
     base_offset += size
+
+partition_list = "ftl_partition_s *partitions[] = {{\n\t{0}\n}};".format(",\n\t".join(partition_list))
 
 replacements = {
     'page_size': args.page_size,
@@ -124,6 +130,8 @@ replacements = {
     'ecc_size': args.ecc_size,
 
     'partitions': partitions,
+    'partition_count': len(args.partition_name),
+    'partition_list': partition_list,
 }
 
 print(t.substitute(replacements))
