@@ -144,13 +144,6 @@ extern "C" {
  * @{
  */
 
-typedef uint32_t pageptr_t;         //!< Zero-indexed pointer to a page.
-typedef uint32_t subpageptr_t;      //!< Zero-indexed pointer to a subpage.
-typedef uint32_t blockptr_t;        //!< Zero-indexed pointer to block.
-
-/* TODO: Remove this? */
-typedef uint16_t subpageoffset_t;
-
 
 
 // This is needed here since `ftl_partition_s` and `ftl_device_s` reference each other
@@ -169,12 +162,23 @@ typedef struct {
  * @brief Describes a device managed by the FTL.
  */
 typedef struct ftl_device_s {
+    uint32_t total_pages;       //!< Total amount of pages configured for the device
+    uint16_t page_size;         //!< Page size configured for the device
+    uint16_t subpage_size;      //!< Subpage size
+    uint16_t pages_per_block;   //!< Amount of pages inside an erase segment (block)
+    uint8_t ecc_size;           //!< Size of the ECC determined for device's subpage size
+
+    ftl_partition_s *index_partition; //!< Partition on which the flash index is stored
+
+    unsigned char *_subpage_buffer;  //!< Buffer for subpage read/write operations.
+    unsigned char *_ecc_buffer;   //!< Buffer for ECC calculation
+
     /**
      * Callback which must write a data buffer of the given length to a certain offset
      * inside a page.
      */
-    int (*write)(const char *buffer,
-                         pageptr_t page,
+    int (*_write)(const char *buffer,
+                         uint32_t page,
                          uint32_t offset,
                          uint16_t length);
 
@@ -182,28 +186,21 @@ typedef struct ftl_device_s {
      * Callback which must read a data segment of the given length from a certain offset
      * inside a page and writes it to the given data buffer.
      */
-    int (*read)(char *buffer,
-                        pageptr_t page,
+    int (*_read)(char *buffer,
+                        uint32_t page,
                         uint32_t offset,
                         uint16_t length);
 
     /**
      * Callback which must erase the given block.
      */
-    int (*erase)(blockptr_t block);
+    int (*_erase)(uint32_t block);
 
-    ftl_partition_s index_partition; //!< Partition on which the flash index is stored
-    ftl_partition_s data_partition;  //!< Partition on which user data is stored
 
-    // TODO rename to subpage buffer
-    char *page_buffer;  //!< Buffer for subpage read/write operations.
-    char *ecc_buffer;   //!< Buffer for ECC calculation
-
-    uint32_t total_pages;       //!< Total amount of pages configured for the device
-    uint16_t page_size;         //!< Page size configured for the device
-    uint16_t subpage_size;      //!< Subpage size
-    uint16_t pages_per_block;   //!< Amount of pages inside an erase segment (block)
-    uint8_t ecc_size;           //!< Size of the ECC determined for device's subpage size
+    /**
+     * Callback which must erase |length| blocks starting at "start_block".
+     */
+    int (*_bulk_erase)(uint32_t start_block, uint32_t length);
 } ftl_device_s;
 
 /**
@@ -261,7 +258,7 @@ int ftl_init(ftl_device_s *device);
 int ftl_read(const ftl_partition_s *partition,
                      char *buffer,
                      subpageheader_s *header,
-                     subpageptr_t subpage);
+                     uint32_t subpage);
 
 /**
  * @brief Writes a single subpage, including its header, without error correction
@@ -279,8 +276,8 @@ int ftl_read(const ftl_partition_s *partition,
  */
 int ftl_write(const ftl_partition_s *partition,
                       const char *buffer,
-                      subpageptr_t subpage,
-                      subpageoffset_t data_length);
+                      uint32_t subpage,
+                      uint16_t data_length);
 
 /**
  * @brief Same as #ftl_write, but adds an error correction code (ECC) to the written subpage
@@ -295,8 +292,8 @@ int ftl_write(const ftl_partition_s *partition,
  */
 int ftl_write_ecc(const ftl_partition_s *partition,
                       const char *buffer,
-                      subpageptr_t subpage,
-                      subpageoffset_t data_length);
+                      uint32_t subpage,
+                      uint16_t data_length);
 
 
 /**
@@ -314,7 +311,7 @@ int ftl_format(const ftl_partition_s *partition);
  * @return    0 on success
  * @return    -EFAULT if an invalid subpage is given
  */
-int ftl_erase(const ftl_partition_s *partition, blockptr_t block);
+int ftl_erase(const ftl_partition_s *partition, uint32_t block);
 
 /**
  * @brief Writes the buffer to the given subpage __without a subpage header__ (for automatic
@@ -329,7 +326,7 @@ int ftl_erase(const ftl_partition_s *partition, blockptr_t block);
  */
 int ftl_write_raw(const ftl_partition_s *partition,
                           const char *buffer,
-                          subpageptr_t subpage);
+                          uint32_t subpage);
 
 /**
  * @brief Reads a single subpage from the given partition into the buffer, __including
@@ -345,7 +342,7 @@ int ftl_write_raw(const ftl_partition_s *partition,
  */
 int ftl_read_raw(const ftl_partition_s *partition,
                          char *buffer,
-                         subpageptr_t subpage);
+                         uint32_t subpage);
 
 
 
@@ -367,7 +364,7 @@ uint8_t ftl_ecc_size(const ftl_device_s *device);
  * @param  block
  * @return        The absolute index of the first subpage in the given block
  */
-subpageptr_t ftl_first_subpage_of_block(const ftl_device_s *device, blockptr_t block);
+uint32_t ftl_first_subpage_of_block(const ftl_device_s *device, uint32_t block);
 
 /**
  * @brief Computes the amount of bytes that can be stored per subpage for the given device
@@ -375,7 +372,7 @@ subpageptr_t ftl_first_subpage_of_block(const ftl_device_s *device, blockptr_t b
  * @param  ecc_enabled Whether ECC is enabled or not for this page
  * @return             Number of bytes that fit into the subpage
  */
-subpageoffset_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enabled);
+uint16_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enabled);
 
 /**
  * @brief Computes the number of subpages held by the given partition
