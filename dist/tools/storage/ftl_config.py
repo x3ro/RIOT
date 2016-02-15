@@ -97,8 +97,7 @@ template_file = open('ftl_config_template.c', 'r')
 template = template_file.read()
 t = Template(template)
 
-partition_struct = ""
-partition_init = ""
+partitions = ""
 base_offset = 0
 for partition in zip(args.partition_name, args.partition_size):
     size = 0
@@ -107,12 +106,13 @@ for partition in zip(args.partition_name, args.partition_size):
     else:
         size = int(partition[1])
 
-    partition_struct += "    ftl_partition_s {0}_partition;\n".format(partition[0])
-    partition_init += """
-        .{0}_partition = {{
-            .base_offset = {1},
-            .size = {2},
-        }},\n\n""".format(partition[0], base_offset, size)
+    #partitions += "    ftl_partition_s {0}_partition;\n".format(partition[0])
+    partitions += """
+ftl_partition_s {0}_partition = {{
+    .device = &device,
+    .base_offset = {1},
+    .size = {2},
+}};\n\n""".format(partition[0], base_offset, size)
 
     base_offset += size
 
@@ -123,8 +123,7 @@ replacements = {
     'total_pages': int(args.total_blocks * args.pages_per_block),
     'ecc_size': args.ecc_size,
 
-    'partition_init': partition_init,
-    'partition_struct': partition_struct
+    'partitions': partitions,
 }
 
 print(t.substitute(replacements))

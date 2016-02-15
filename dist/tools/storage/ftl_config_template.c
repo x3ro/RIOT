@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Freie Universität Berlin
+ * Copyright (C) 2016 Lucas Jenß <lucas@x3ro.de>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -19,17 +19,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-// This is needed here since `ftl_partition_s` and `ftl_device_s` reference each other
-struct ftl_device_s;
-
-/**
- * @brief Describes a partition on a device managed by the FTL.
- */
-typedef struct {
-    struct ftl_device_s *device;    //!< The device on which the partition is located
-    uint32_t base_offset;           //!< Zero-indexed absolute offset of the partition __in blocks__.
-    uint32_t size;                  //!< Size of the partition __in blocks__.
-} ftl_partition_s;
+#include "storage/ftl.h"
 
 typedef struct ftl_device_s {
     /**
@@ -60,17 +50,14 @@ typedef struct ftl_device_s {
      */
     int (*_bulk_erase)(uint32_t start_block, uint32_t length);
 
-    char _subpage_buffer[${subpage_size}];  //!< Buffer for subpage read/write operations.
-    char _ecc_buffer[${ecc_size}];        //!< Buffer for ECC calculation
-
-
-${partition_struct}
-
     uint32_t total_pages;       //!< Total amount of pages configured for the device
     uint16_t page_size;         //!< Page size configured for the device
     uint16_t subpage_size;      //!< Subpage size
     uint16_t pages_per_block;   //!< Amount of pages inside an erase segment (block)
     uint8_t ecc_size;           //!< Size of the ECC determined for device's subpage size
+
+    unsigned char *subpage_buffer;  //!< Buffer for subpage read/write operations.
+    unsigned char *ecc_buffer;      //!< Buffer for ECC calculation
 } ftl_device_s;
 
 
@@ -108,27 +95,31 @@ int flash_driver_bulk_erase(uint32_t block, uint32_t length) {
 }
 
 
+
+unsigned char subpage_buffer[${subpage_size}];
+unsigned char ecc_buffer[${ecc_size}];
+
+ftl_device_s test_storage = {
+    .total_pages = ${total_pages},
+    .page_size = ${page_size},
+    .subpage_size = ${subpage_size},
+    .pages_per_block = ${pages_per_block},
+    .ecc_size = ${ecc_size},
+
+    ._write = flash_driver_write,
+    ._read = flash_driver_read,
+    ._erase = flash_driver_erase,
+    ._bulk_erase = flash_driver_bulk_erase,
+
+    ._subpage_buffer = &subpage_buffer,
+    ._ecc_buffer = &ecc_buffer
+};
+
+${partitions}
+
 int main(void)
 {
-    ftl_device_s device = {
-        .total_pages = ${total_pages},
-        .page_size = ${page_size},
-        .subpage_size = ${subpage_size},
-        .pages_per_block = ${pages_per_block},
-        .ecc_size = ${ecc_size},
-
-        ${partition_init}
-
-        // Function pointers for flash driver interface
-        ._write = flash_driver_write,
-        ._read = flash_driver_read,
-        ._erase = flash_driver_erase,
-        ._bulk_erase = flash_driver_bulk_erase,
-    };
-
-    puts("Hello World!");
-
-    printf("You are running RIOT on a(n) %s board %d.\n", RIOT_BOARD, device.index_partition.size);
+    printf("You are running RIOT on a(n) %s board %d.\n", RIOT_BOARD, device.total_pages);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
 
     return 0;
