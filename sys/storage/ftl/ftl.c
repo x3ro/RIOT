@@ -30,7 +30,7 @@
 #define MYDEBUG(...) DEBUG("%s: ", __FUNCTION__); \
                      DEBUG(__VA_ARGS__)
 
-#define FTL_INDEX_SIZE (1024*1024*4) // 4MiB
+#define FTL_INDEX_SIZE (1024*1024*4) // 4MiB TODO wtf
 
 uint32_t uint32_log2(uint32_t inVal) {
     if(inVal == 0)

@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <diskio.h>
+#include <stdbool.h>
 #include <math.h>
 
 #include "embUnit.h"
@@ -73,6 +74,43 @@ void sprint_double(char *buffer, double x, int precision) {
     buf[i] = '\0';
     sprintf(buffer, "%ld.%s", integral_part, buf);
 }
+
+static void write_test_sector(int sector_number) {
+    DSTATUS status;
+    printf("About to write the following to sector %d:\n%s\n", sector_number, teststring2);
+    status = MCI_write(teststring2, sector_number, 1);
+    printf("MCI write status: 0x%hhx\n", status);
+    TEST_ASSERT_EQUAL_INT(0, status);
+}
+
+static void read_test_sector(int sector_number, bool test_empty) {
+    DSTATUS status;
+    printf("About to read from SDCard sector %d\n", sector_number);
+    status = MCI_read(read_buffer, sector_number, 1);
+    _zero_end_strings();
+    printf("MCI read status: 0x%hhx\n", status);
+    printf("Read the following:\n'%s'\n", read_buffer);
+    TEST_ASSERT_EQUAL_INT(0, status);
+    _zero_end_strings();
+
+    if(test_empty) {
+        TEST_ASSERT(strcmp((char*) read_buffer, (char*)teststring2) != 0);
+    } else {
+        TEST_ASSERT(strcmp((char*) read_buffer, (char*)teststring2) == 0);
+    }
+}
+
+static void erase_block(int block_number) {
+    DSTATUS status;
+    printf("About to erase block %d\n", block_number);
+    unsigned long params[2];
+    params[0] = 1024*block_number; // start
+    params[1] = 1024*(block_number+1)-1; // end
+    status = MCI_ioctl(CTRL_ERASE_SECTOR, &params);
+    TEST_ASSERT_EQUAL_INT(0, status);
+    printf("MCI read status: 0x%hhx\n", status);
+}
+
 
 static void main_test(void)
 {
@@ -129,10 +167,12 @@ static void main_test(void)
     printf("MCI write status: 0x%hhx\n", status);
     TEST_ASSERT_EQUAL_INT(0, status);
 
-    printf("About to write the following to sector 1:\n%s\n", teststring2);
-    status = MCI_write(teststring2, 1, op_sector_count);
-    printf("MCI write status: 0x%hhx\n", status);
-    TEST_ASSERT_EQUAL_INT(0, status);
+    // printf("About to write the following to sector 1:\n%s\n", teststring2);
+    // status = MCI_write(teststring2, 1, op_sector_count);
+    // printf("MCI write status: 0x%hhx\n", status);
+    // TEST_ASSERT_EQUAL_INT(0, status);
+
+    write_test_sector(1);
 
     printf("About to read from SDCard sector 0\n");
     status = MCI_read(read_buffer, 0, op_sector_count);
@@ -143,28 +183,29 @@ static void main_test(void)
     _zero_end_strings();
     TEST_ASSERT(strcmp((char*) read_buffer, (char*)teststring1) == 0);
 
-    printf("About to read from SDCard sector 1\n");
-    status = MCI_read(read_buffer, 1, op_sector_count);
-    _zero_end_strings();
-    printf("MCI read status: 0x%hhx\n", status);
-    printf("Read the following:\n'%s'\n", read_buffer);
-    TEST_ASSERT_EQUAL_INT(0, status);
-    _zero_end_strings();
-    TEST_ASSERT(strcmp((char*) read_buffer, (char*)teststring2) == 0);
 
-    printf("About to erase sector 0\n");
-    unsigned long block_to_erase = 0;
-    status = MCI_ioctl(CTRL_ERASE_SECTOR, &block_to_erase);
-    TEST_ASSERT_EQUAL_INT(0, status);
-    printf("MCI read status: 0x%hhx\n", status);
+    read_test_sector(1, false);
+    erase_block(0);
+    read_test_sector(1, true);
 
-    printf("About to read from SDCard sector 1\n");
-    status = MCI_read(read_buffer, 1, op_sector_count);
-    _zero_end_strings();
-    printf("MCI read status: 0x%hhx\n", status);
-    printf("Read the following:\n'%s'\n", read_buffer);
-    printf("Byte 0 was:'%x'\n", read_buffer[0]);
-    TEST_ASSERT(strcmp((char*) read_buffer, (char*)teststring2) != 0);
+    write_test_sector(1023);
+    read_test_sector(1023, false);
+
+    write_test_sector(1024);
+    read_test_sector(1024, false);
+
+    write_test_sector(2047);
+    read_test_sector(2047, false);
+
+    write_test_sector(2048);
+    read_test_sector(2048, false);
+
+    erase_block(1);
+
+    read_test_sector(1023, false);
+    read_test_sector(1024, true);
+    read_test_sector(2047, true);
+    read_test_sector(2048, false);
 }
 
 

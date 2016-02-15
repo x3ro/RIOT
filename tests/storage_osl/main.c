@@ -160,7 +160,6 @@ static void test_stream_beyond_buffer(void) {
 
     uint64_t x;
 
-
     for(int i=0; i < 3000; i++) {
         x = i;
         ret = osl_stream_append(&stream, &x);
@@ -168,17 +167,15 @@ static void test_stream_beyond_buffer(void) {
     }
     printf("Write done\n");
 
-    // for(int i=3000; i > 0; i--) {
-    //     ret = osl_stream_get(&stream, &x, i-1);
-    //     TEST_ASSERT_EQUAL_INT(i-1, x);
-    // }
-
     for(int i=0; i < 3000; i++) {
         ret = osl_stream_get(&stream, &x, i);
-        //printf("testing %d\n", i);
         TEST_ASSERT_EQUAL_INT(i, x);
     }
     printf("Read done\n");
+}
+
+static void test_metadata_saving(void) {
+    return;
 }
 
 Test *testsrunner(void) {
@@ -188,6 +185,7 @@ Test *testsrunner(void) {
         new_TestFixture(test_init_osl),
         new_TestFixture(test_stream),
         new_TestFixture(test_stream_beyond_buffer),
+        new_TestFixture(test_metadata_saving),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);

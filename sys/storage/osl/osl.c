@@ -47,6 +47,12 @@ int64_t _find_first_index_page(osl_s *osl) {
     return -1;
 }
 
+
+
+/* =================
+ * Buffer management
+ * ================= */
+
 int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
     int record_offset = osl->subpage_buffer_cursor;
 
@@ -91,8 +97,30 @@ int _osl_buffer_read_datum(unsigned char *buffer, osl_record_s* record, void* da
             size);
 
     return 0;
-
 }
+
+int _osl_buffer_flush(osl_s* osl) {
+    MYDEBUG("Flushing buffer to page %d\n", osl->next_data_subpage);
+
+    int ret = ftl_write_ecc(&osl->device->data_partition,
+                            (char *) osl->subpage_buffer,
+                            osl->next_data_subpage,
+                            osl->subpage_buffer_size);
+
+    if(ret != 0) {
+        return ret;
+    }
+
+    memset(osl->subpage_buffer, 0, osl->subpage_buffer_size);
+    osl->subpage_buffer_cursor = 0;
+    osl->next_data_subpage++;
+    return 0;
+}
+
+
+
+
+
 
 int _osl_read_page(osl_s* osl, uint32_t subpage) {
     MYDEBUG("Reading subpage %d\n", subpage);
@@ -161,23 +189,7 @@ int _osl_record_datum_get(osl_s* osl, osl_record_s* record, void* datum, int off
     return _osl_record_datum_get(osl, record, datum, offset, size);
 }
 
-int _osl_buffer_flush(osl_s* osl) {
-    MYDEBUG("Flushing buffer to page %d\n", osl->next_data_subpage);
 
-    int ret = ftl_write_ecc(&osl->device->data_partition,
-                            (char *) osl->subpage_buffer,
-                            osl->next_data_subpage,
-                            osl->subpage_buffer_size);
-
-    if(ret != 0) {
-        return ret;
-    }
-
-    memset(osl->subpage_buffer, 0, osl->subpage_buffer_size);
-    osl->subpage_buffer_cursor = 0;
-    osl->next_data_subpage++;
-    return 0;
-}
 
 
 
@@ -403,4 +415,9 @@ int osl_stream_get(osl_od* od, void* object_buffer, unsigned long index) {
 osl_object_s* osl_get_object(osl_od* od) {
     return &od->osl->objects[od->index];
 }
+
+// int osl_object_close(osl_od* od) {
+//     osl_object_s* object = osl_get_object(od);
+
+// }
 

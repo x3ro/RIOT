@@ -34,9 +34,8 @@
 
 
 
-
-
-
+#define TEST_FTL_HEADER_SIZE 3 // sizeof(subpageheader_s)
+#define TEST_FTL_ECC_SIZE 6
 
 #ifdef BOARD_NATIVE
 
@@ -47,8 +46,7 @@ flash_sim fs;
 #define FTL_PAGES_PER_BLOCK 1024
 #define FTL_TOTAL_PAGES 32768
 
-#define TEST_FTL_HEADER_SIZE 3 // sizeof(subpageheader_s)
-#define TEST_FTL_ECC_SIZE 6
+
 
 /* Functions for a flash_sim based FTL device */
 
@@ -73,7 +71,7 @@ int erase(blockptr_t block) {
 #include <diskio.h>
 #define FTL_PAGE_SIZE 512
 #define FTL_SUBPAGE_SIZE 512
-#define FTL_PAGES_PER_BLOCK 2048
+#define FTL_PAGES_PER_BLOCK 1024
 #define FTL_TOTAL_PAGES 16384 // Using 8 MB for now
 
 int write(const char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
@@ -91,8 +89,11 @@ int read(char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
 }
 
 int erase(blockptr_t block) {
-    unsigned long block_to_erase = block + 0;
-    int ret = MCI_ioctl(CTRL_ERASE_SECTOR, &block_to_erase);
+    //unsigned int block_to_erase = block + 0;
+    unsigned int buff[2];
+    buff[0] = block * FTL_PAGES_PER_BLOCK;
+    buff[1] = (block + 1) * FTL_PAGES_PER_BLOCK - 1;
+    int ret = MCI_ioctl(CTRL_ERASE_SECTOR, &buff);
     return ret;
 }
 
@@ -183,11 +184,11 @@ static void test_init(void) {
     int ret = ftl_init(&device);
     TEST_ASSERT(device.index_partition.device != 0);
     TEST_ASSERT_EQUAL_INT(0, device.index_partition.base_offset);
-    TEST_ASSERT_EQUAL_INT(4, device.index_partition.size);
+    TEST_ASSERT_EQUAL_INT(8, device.index_partition.size);
 
     TEST_ASSERT(device.data_partition.device != 0);
-    TEST_ASSERT_EQUAL_INT(4, device.data_partition.base_offset);
-    TEST_ASSERT_EQUAL_INT(4, device.data_partition.size);
+    TEST_ASSERT_EQUAL_INT(8, device.data_partition.base_offset);
+    TEST_ASSERT_EQUAL_INT(8, device.data_partition.size);
 
     TEST_ASSERT_EQUAL_INT(6, device.ecc_size);
     TEST_ASSERT_EQUAL_INT(0, ret);
@@ -215,8 +216,8 @@ static void test_size_helpers(void) {
 
 #ifdef BOARD_MSBA2
     TEST_ASSERT_EQUAL_INT(0, ftl_first_subpage_of_block(&device, 0));
-    TEST_ASSERT_EQUAL_INT(2048, ftl_first_subpage_of_block(&device, 1));
-    TEST_ASSERT_EQUAL_INT(86016, ftl_first_subpage_of_block(&device, 42));
+    TEST_ASSERT_EQUAL_INT(1024, ftl_first_subpage_of_block(&device, 1));
+    TEST_ASSERT_EQUAL_INT(43008, ftl_first_subpage_of_block(&device, 42));
 
 
     TEST_ASSERT_EQUAL_INT(8192, ftl_subpages_in_partition(&device.index_partition));
@@ -240,7 +241,7 @@ static void test_write_read_raw(void) {
     int ret;
 
     blockptr_t block = 0;
-    ret = ftl_erase(&device.index_partition, block);
+    ret = ftl_erase(&device.data_partition, block);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
     memset(page_buffer, 0x0, FTL_SUBPAGE_SIZE);
@@ -249,10 +250,10 @@ static void test_write_read_raw(void) {
     ret = ftl_read_raw(&device.data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
-    // for(int i=0; i<FTL_SUBPAGE_SIZE; i++) {
-    //     printf("%x ", (unsigned char) page_buffer[i]);
-    // }
-    // printf("\nbuffer ^^^^^\n");
+    for(int i=0; i<FTL_SUBPAGE_SIZE; i++) {
+        printf("%x ", (unsigned char) page_buffer[i]);
+    }
+    printf("\nbuffer ^^^^^\n");
 
     TEST_ASSERT_EQUAL_INT(0, strncmp(page_buffer, expect_buffer, FTL_SUBPAGE_SIZE));
 
