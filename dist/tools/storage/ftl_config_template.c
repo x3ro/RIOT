@@ -21,46 +21,6 @@
 
 #include "storage/ftl.h"
 
-typedef struct ftl_device_s {
-    /**
-     * Callback which must write a data buffer of the given length to a certain offset
-     * inside a page.
-     */
-    int (*_write)(const char *buffer,
-                         uint32_t page,
-                         uint32_t offset,
-                         uint16_t length);
-
-    /**
-     * Callback which must read a data segment of the given length from a certain offset
-     * inside a page and writes it to the given data buffer.
-     */
-    int (*_read)(char *buffer,
-                        uint32_t page,
-                        uint32_t offset,
-                        uint16_t length);
-
-    /**
-     * Callback which must erase the given block.
-     */
-    int (*_erase)(uint32_t block);
-
-    /**
-     * Callback which must erase |length| blocks starting at "start_block".
-     */
-    int (*_bulk_erase)(uint32_t start_block, uint32_t length);
-
-    uint32_t total_pages;       //!< Total amount of pages configured for the device
-    uint16_t page_size;         //!< Page size configured for the device
-    uint16_t subpage_size;      //!< Subpage size
-    uint16_t pages_per_block;   //!< Amount of pages inside an erase segment (block)
-    uint8_t ecc_size;           //!< Size of the ECC determined for device's subpage size
-
-    unsigned char *subpage_buffer;  //!< Buffer for subpage read/write operations.
-    unsigned char *ecc_buffer;      //!< Buffer for ECC calculation
-} ftl_device_s;
-
-
 int flash_driver_write(const char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
     // TODO: Remove this and implement interface to the flash storage driver.
     buffer = buffer;
@@ -94,12 +54,10 @@ int flash_driver_bulk_erase(uint32_t block, uint32_t length) {
     return -1;
 }
 
-
-
 unsigned char subpage_buffer[${subpage_size}];
 unsigned char ecc_buffer[${ecc_size}];
 
-ftl_device_s test_storage = {
+ftl_device_s device = {
     .total_pages = ${total_pages},
     .page_size = ${page_size},
     .subpage_size = ${subpage_size},
@@ -111,8 +69,8 @@ ftl_device_s test_storage = {
     ._erase = flash_driver_erase,
     ._bulk_erase = flash_driver_bulk_erase,
 
-    ._subpage_buffer = &subpage_buffer,
-    ._ecc_buffer = &ecc_buffer
+    ._subpage_buffer = subpage_buffer,
+    ._ecc_buffer = ecc_buffer
 };
 
 ${partitions}
