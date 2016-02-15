@@ -156,6 +156,11 @@ typedef struct {
     struct ftl_device_s *device;    //!< The device on which the partition is located
     uint32_t base_offset;           //!< Zero-indexed absolute offset of the partition __in blocks__.
     uint32_t size;                  //!< Size of the partition __in blocks__.
+
+    // See Sect. Free Space Management
+    uint32_t next_page;             //!< The next page to be written by the FTL
+    uint32_t erased_until;          //!< Pointer to the last erased block
+    uint32_t free_until;            //!< Pointer to the last known free block
 } ftl_partition_s;
 
 /**
@@ -168,7 +173,8 @@ typedef struct ftl_device_s {
     uint16_t pages_per_block;   //!< Amount of pages inside an erase segment (block)
     uint8_t ecc_size;           //!< Size of the ECC determined for device's subpage size
 
-    ftl_partition_s *index_partition; //!< Partition on which the flash index is stored
+    uint8_t partition_count;
+    ftl_partition_s **partitions;
 
     unsigned char *_subpage_buffer;  //!< Buffer for subpage read/write operations.
     unsigned char *_ecc_buffer;   //!< Buffer for ECC calculation
