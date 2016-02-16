@@ -213,6 +213,7 @@ typedef struct ftl_device_s {
  * @brief Header which precedes every subpage not written in raw mode.
  *
  * The header may be followed by an ECC of the size defined in ::ftl_device_s's ecc_size.
+ * TODO adjust according to thesis
  */
 typedef struct __attribute__((__packed__)) {
     unsigned int data_length:16;    //!< Length of the data written to this subpage
