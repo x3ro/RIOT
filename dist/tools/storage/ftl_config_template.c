@@ -81,10 +81,11 @@ ${partition_list}
 int main(void)
 {
     device.partitions = partitions;
-    ftl_init(&device);
+    int ret = ftl_init(&device);
+    assert(ret == 0);
 
-    printf("You are running RIOT on a(n) %s board %d.\n", RIOT_BOARD, device.total_pages);
-    printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+    printf("You are running RIOT.\n");
+    printf("Storage pages configured: %d\n", device.total_pages);
 
     return 0;
 }
