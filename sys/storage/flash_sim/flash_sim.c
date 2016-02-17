@@ -8,7 +8,6 @@
 #include <errno.h>
 
 #include "storage/flash_sim.h"
-#include "storage/ftl.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -225,7 +224,7 @@ int flash_sim_erase(const flash_sim *fs, uint32_t block) {
 
 int flash_sim_ftl_write(flash_sim *fs,
                   const char *buffer,
-                  pageptr_t page,
+                  uint32_t page,
                   uint32_t offset,
                   uint16_t length) {
 
@@ -238,7 +237,7 @@ int flash_sim_ftl_write(flash_sim *fs,
 
 int flash_sim_ftl_read(flash_sim *fs,
                  char *buffer,
-                 pageptr_t page,
+                 uint32_t page,
                  uint32_t offset,
                  uint16_t length) {
 
@@ -249,7 +248,7 @@ int flash_sim_ftl_read(flash_sim *fs,
     return 0;
 }
 
-int flash_sim_ftl_erase(flash_sim *fs, blockptr_t block) {
+int flash_sim_ftl_erase(flash_sim *fs, uint32_t block) {
     int ret = flash_sim_erase(fs, block);
     if(ret != 0) {
         return -EIO;
