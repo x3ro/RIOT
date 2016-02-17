@@ -144,8 +144,6 @@ extern "C" {
  * @{
  */
 
-
-
 // This is needed here since `ftl_partition_s` and `ftl_device_s` reference each other
 struct ftl_device_s;
 
@@ -163,6 +161,10 @@ typedef struct {
     uint32_t free_until;            //!< Pointer to the last known free block
 } ftl_partition_s;
 
+// typedef struct {
+
+// } ftl_;
+
 /**
  * @brief Describes a device managed by the FTL.
  */
@@ -172,6 +174,7 @@ typedef struct ftl_device_s {
     uint16_t subpage_size;      //!< Subpage size
     uint16_t pages_per_block;   //!< Amount of pages inside an erase segment (block)
     uint8_t ecc_size;           //!< Size of the ECC determined for device's subpage size
+    bool is_initialized;
 
     uint8_t partition_count;
     ftl_partition_s **partitions;
@@ -183,7 +186,7 @@ typedef struct ftl_device_s {
      * Callback which must write a data buffer of the given length to a certain offset
      * inside a page.
      */
-    int (*_write)(const char *buffer,
+    int (*_write)(const unsigned char *buffer,
                          uint32_t page,
                          uint32_t offset,
                          uint16_t length);
@@ -192,7 +195,7 @@ typedef struct ftl_device_s {
      * Callback which must read a data segment of the given length from a certain offset
      * inside a page and writes it to the given data buffer.
      */
-    int (*_read)(char *buffer,
+    int (*_read)(unsigned char *buffer,
                         uint32_t page,
                         uint32_t offset,
                         uint16_t length);
@@ -263,7 +266,7 @@ int ftl_init(ftl_device_s *device);
  * @return           Any error code that #ftl_read_raw may return
  */
 int ftl_read(const ftl_partition_s *partition,
-                     char *buffer,
+                     unsigned char *buffer,
                      subpageheader_s *header,
                      uint32_t subpage);
 
@@ -282,7 +285,7 @@ int ftl_read(const ftl_partition_s *partition,
  * @return             -EFBIG if the given data does not fit into a subpage
  */
 int ftl_write(const ftl_partition_s *partition,
-                      const char *buffer,
+                      const unsigned char *buffer,
                       uint32_t subpage,
                       uint16_t data_length);
 
@@ -298,7 +301,7 @@ int ftl_write(const ftl_partition_s *partition,
  * @see #ftl_write
  */
 int ftl_write_ecc(const ftl_partition_s *partition,
-                      const char *buffer,
+                      const unsigned char *buffer,
                       uint32_t subpage,
                       uint16_t data_length);
 
@@ -332,7 +335,7 @@ int ftl_erase(const ftl_partition_s *partition, uint32_t block);
  * @return 0 or an error code
  */
 int ftl_write_raw(const ftl_partition_s *partition,
-                          const char *buffer,
+                          const unsigned char *buffer,
                           uint32_t subpage);
 
 /**
@@ -348,7 +351,7 @@ int ftl_write_raw(const ftl_partition_s *partition,
  * @return    -EFAULT if an invalid subpage is given
  */
 int ftl_read_raw(const ftl_partition_s *partition,
-                         char *buffer,
+                         unsigned char *buffer,
                          uint32_t subpage);
 
 

@@ -30,8 +30,6 @@
 #define MYDEBUG(...) DEBUG("%s: ", __FUNCTION__); \
                      DEBUG(__VA_ARGS__)
 
-#define FTL_INDEX_SIZE (1024*1024*4) // 4MiB TODO wtf
-
 uint32_t uint32_log2(uint32_t inVal) {
     if(inVal == 0)
         return 0;
@@ -73,21 +71,21 @@ uint8_t ftl_ecc_size(const ftl_device_s *device) {
     return bytesize;
 }
 
-uint8_t ftl_subpage_mod(const ftl_device_s *device, subpageptr_t subpage) {
+uint8_t ftl_subpage_mod(const ftl_device_s *device, uint32_t subpage) {
     return subpage % (device->page_size / device->subpage_size);
 }
 
-subpageptr_t ftl_first_subpage_of_block(const ftl_device_s *device, blockptr_t block) {
+uint32_t ftl_first_subpage_of_block(const ftl_device_s *device, uint32_t block) {
     return block * device->pages_per_block * (device->page_size / device->subpage_size);
 }
 
-pageptr_t ftl_subpage_to_page(const ftl_partition_s *partition, subpageptr_t subpage) {
+uint32_t ftl_subpage_to_page(const ftl_partition_s *partition, uint32_t subpage) {
     return (partition->base_offset * partition->device->pages_per_block) +
             subpage / (partition->device->page_size / partition->device->subpage_size);
 }
 
-subpageoffset_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enabled) {
-    subpageoffset_t size = device->subpage_size - sizeof(subpageheader_s);
+uint16_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enabled) {
+    uint16_t size = device->subpage_size - sizeof(subpageheader_s);
 
     if(ecc_enabled) {
         size -= device->ecc_size;
@@ -96,42 +94,51 @@ subpageoffset_t ftl_data_per_subpage(const ftl_device_s *device, bool ecc_enable
     return size;
 }
 
-int ftl_init(ftl_device_s *device) {
-    if(ftl_device_capacity(device) < FTL_INDEX_SIZE) {
-        return -EFAULT;
-    }
+bool ftl_is_initialized(const ftl_device_s *device) {
+    return device->is_initialized;
+}
 
-    uint32_t blocksize = ftl_device_blocksize(device);
-    device->index_partition.device = device;
-    device->index_partition.base_offset = 0;
-    device->index_partition.size = FTL_INDEX_SIZE / blocksize;
-    if((FTL_INDEX_SIZE % blocksize) > 0) {
-        device->index_partition.size += 1;
-    }
+
+int ftl_init(ftl_device_s *device) {
+    // if(ftl_device_capacity(device) < FTL_INDEX_SIZE) {
+    //     return -EFAULT;
+    // }
+
+    // uint32_t blocksize = ftl_device_blocksize(device);
+    // device->index_partition.device = device;
+    // device->index_partition.base_offset = 0;
+    // device->index_partition.size = FTL_INDEX_SIZE / blocksize;
+    // if((FTL_INDEX_SIZE % blocksize) > 0) {
+    //     device->index_partition.size += 1;
+    // }
 
     // The data partition starts directly after the index and spans the rest
     // of the device.
-    device->data_partition.device = device;
-    device->data_partition.base_offset = device->index_partition.size;
-    device->data_partition.size = (device->total_pages / device->pages_per_block) -
-                                   device->index_partition.size;
+    // device->data_partition.device = device;
+    // device->data_partition.base_offset = device->index_partition.size;
+    // device->data_partition.size = (device->total_pages / device->pages_per_block) -
+    //                                device->index_partition.size;
 
-    device->ecc_size = ftl_ecc_size(device);
-    device->page_buffer = malloc(device->subpage_size);
-    if(device->page_buffer == 0)  {
-        return -ENOMEM;
-    }
+    //device->ecc_size = ftl_ecc_size(device);
+    //device->_subpage_buffer = malloc(device->subpage_size);
+    // if(device->_subpage_buffer == 0)  {
+    //     return -ENOMEM;
+    // }
 
-    device->ecc_buffer = malloc(device->ecc_size);
-    if(device->ecc_buffer == 0)  {
-        return -ENOMEM;
-    }
+    // device->_ecc_buffer = malloc(device->ecc_size);
+    // if(device->_ecc_buffer == 0)  {
+    //     return -ENOMEM;
+    // }
+    //
+    //
 
+    // TODO :D
+    device->is_initialized = true;
     return 0;
 }
 
-int ftl_erase(const ftl_partition_s *partition, blockptr_t block) {
-    blockptr_t absolute_block = partition->base_offset + block;
+int ftl_erase(const ftl_partition_s *partition, uint32_t block) {
+    uint32_t absolute_block = partition->base_offset + block;
     uint32_t block_capacity = partition->device->total_pages / partition->device->pages_per_block;
     if(block >= partition->size || absolute_block >= block_capacity) {
         return -EFAULT;
@@ -139,7 +146,7 @@ int ftl_erase(const ftl_partition_s *partition, blockptr_t block) {
 
     MYDEBUG("Erasing block=%lu\n", (unsigned long) absolute_block);
 
-    return partition->device->erase(absolute_block);
+    return partition->device->_erase(absolute_block);
 }
 
 int ftl_format(const ftl_partition_s *partition) {
@@ -155,27 +162,27 @@ int ftl_format(const ftl_partition_s *partition) {
 }
 
 int ftl_read_raw(const ftl_partition_s *partition,
-                     char *buffer,
-                     subpageptr_t subpage) {
+                     unsigned char *buffer,
+                     uint32_t subpage) {
 
     if(subpage >= ftl_subpages_in_partition(partition)) {
         return -EFAULT;
     }
 
-    pageptr_t page = ftl_subpage_to_page(partition, subpage);
+    uint32_t page = ftl_subpage_to_page(partition, subpage);
     MYDEBUG("Reading from page %lu, offset=%lu, size=%lu\n", (unsigned long) page,
         (unsigned long) ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
         (unsigned long) partition->device->subpage_size);
 
-    return partition->device->read(buffer,
+    return partition->device->_read(buffer,
                                    page,
                                    ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
                                    partition->device->subpage_size);
 }
 
 int ftl_write_raw(const ftl_partition_s *partition,
-                     const char *buffer,
-                     subpageptr_t subpage) {
+                     const unsigned char *buffer,
+                     uint32_t subpage) {
 
     printf("subpage: %lu, subpages in partition: %lu\n", (unsigned long) subpage,
         (unsigned long) ftl_subpages_in_partition(partition));
@@ -184,12 +191,12 @@ int ftl_write_raw(const ftl_partition_s *partition,
         return -EFAULT;
     }
 
-    pageptr_t page = ftl_subpage_to_page(partition, subpage);
+    uint32_t page = ftl_subpage_to_page(partition, subpage);
     MYDEBUG("Writing to page %lu, offset=%lu, size=%lu\n", (unsigned long) page,
         (unsigned long) ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
         (unsigned long) partition->device->subpage_size);
 
-     return partition->device->write(
+     return partition->device->_write(
         buffer,
         page,
         ftl_subpage_mod(partition->device, subpage) * partition->device->subpage_size,
@@ -198,9 +205,9 @@ int ftl_write_raw(const ftl_partition_s *partition,
 
 
 int ftl_write(const ftl_partition_s *partition,
-                      const char *buffer,
-                      subpageptr_t subpage,
-                      subpageoffset_t data_length) {
+                      const unsigned char *buffer,
+                      uint32_t subpage,
+                      uint16_t data_length) {
 
     subpageheader_s header;
     if(data_length > ftl_data_per_subpage(partition->device, false)) {
@@ -213,15 +220,15 @@ int ftl_write(const ftl_partition_s *partition,
     header.ecc_enabled = 0;
     header.reserved = 0;
 
-    memcpy(partition->device->page_buffer, &header, sizeof(header));
-    memcpy(partition->device->page_buffer + sizeof(header), buffer, data_length);
-    return ftl_write_raw(partition, partition->device->page_buffer, subpage);
+    memcpy(partition->device->_subpage_buffer, &header, sizeof(header));
+    memcpy(partition->device->_subpage_buffer + sizeof(header), buffer, data_length);
+    return ftl_write_raw(partition, partition->device->_subpage_buffer, subpage);
 }
 
 int ftl_write_ecc(const ftl_partition_s *partition,
-                      const char *buffer,
-                      subpageptr_t subpage,
-                      subpageoffset_t data_length) {
+                      const unsigned char *buffer,
+                      uint32_t subpage,
+                      uint16_t data_length) {
 
     subpageheader_s header;
     MYDEBUG("l: %d, other: %d\n", data_length, partition->device->subpage_size - ftl_data_per_subpage(partition->device, true));
@@ -237,35 +244,35 @@ int ftl_write_ecc(const ftl_partition_s *partition,
     header.reserved = 0;
 
     // Page buffer needs to be wiped because of the ECC calculation
-    memset(partition->device->page_buffer, 0x00, partition->device->subpage_size);
+    memset(partition->device->_subpage_buffer, 0x00, partition->device->subpage_size);
 
-    memcpy(partition->device->page_buffer, &header, sizeof(header));
+    memcpy(partition->device->_subpage_buffer, &header, sizeof(header));
 
-    memcpy(partition->device->page_buffer + sizeof(header) + partition->device->ecc_size,
+    memcpy(partition->device->_subpage_buffer + sizeof(header) + partition->device->ecc_size,
            buffer, data_length);
 
-    hamming_compute256x((uint8_t*)partition->device->page_buffer,
+    hamming_compute256x((uint8_t*)partition->device->_subpage_buffer,
                         partition->device->subpage_size,
-                        (uint8_t*)partition->device->ecc_buffer);
+                        (uint8_t*)partition->device->_ecc_buffer);
 
-    memcpy(partition->device->page_buffer + sizeof(header),
-           partition->device->ecc_buffer,
+    memcpy(partition->device->_subpage_buffer + sizeof(header),
+           partition->device->_ecc_buffer,
            partition->device->ecc_size);
 
-    return ftl_write_raw(partition, partition->device->page_buffer, subpage);
+    return ftl_write_raw(partition, partition->device->_subpage_buffer, subpage);
 }
 
 int ftl_read(const ftl_partition_s *partition,
-                     char *buffer,
+                     unsigned char *buffer,
                      subpageheader_s *header,
-                     subpageptr_t subpage) {
+                     uint32_t subpage) {
 
-    int ret = ftl_read_raw(partition, partition->device->page_buffer, subpage);
+    int ret = ftl_read_raw(partition, partition->device->_subpage_buffer, subpage);
     if(ret != 0) {
         return ret;
     }
 
-    memcpy(header, partition->device->page_buffer, sizeof(subpageheader_s));
+    memcpy(header, partition->device->_subpage_buffer, sizeof(subpageheader_s));
 
     bool uninitialized = true;
     for(unsigned int i=0; i < sizeof(subpageheader_s); i++) {
@@ -283,8 +290,8 @@ int ftl_read(const ftl_partition_s *partition,
         return -EBADF;
     }
 
-    char *data_buffer = partition->device->page_buffer;
-    char *ecc_buffer = partition->device->ecc_buffer;
+    unsigned char *data_buffer = partition->device->_subpage_buffer;
+    unsigned char *ecc_buffer = partition->device->_ecc_buffer;
     if(header->ecc_enabled) {
         uint8_t ecc_size = partition->device->ecc_size;
         memcpy(ecc_buffer, data_buffer + sizeof(subpageheader_s), ecc_size);
@@ -297,7 +304,7 @@ int ftl_read(const ftl_partition_s *partition,
             return -EBADF;
         } else if(result == Hamming_ERROR_SINGLEBIT) {
             // We need to update the header in case that the flipped bit was in there
-            memcpy(header, partition->device->page_buffer, sizeof(subpageheader_s));
+            memcpy(header, partition->device->_subpage_buffer, sizeof(subpageheader_s));
         }
 
         data_buffer += ecc_size;
@@ -309,6 +316,3 @@ int ftl_read(const ftl_partition_s *partition,
     return 0;
 }
 
-bool ftl_is_initialized(const ftl_device_s *device) {
-    return (device->page_buffer != 0);
-}
