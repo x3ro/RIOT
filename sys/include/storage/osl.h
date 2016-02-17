@@ -43,12 +43,12 @@ extern "C" {
 
 typedef struct osl_index_page_header_s {
     uint32_t version;
-    subpageptr_t first_page; /**< First page of the index entry to which this
+    uint32_t first_page; /**< First page of the index entry to which this
                                   index page belongs */
 } osl_index_page_s;
 
 typedef struct osl_index_entry_s {
-    subpageptr_t first_page; /**< First page of the index entry */
+    uint32_t first_page; /**< First page of the index entry */
 } osl_index_entry_s;
 
 
@@ -61,7 +61,7 @@ typedef struct osl_index_entry_s {
 
 
 typedef struct osl_record_s {
-    subpageptr_t subpage; /* If subpage is 0, that means that the predecessor is on the
+    uint32_t subpage; /* If subpage is 0, that means that the predecessor is on the
                              same page */
     int16_t offset;
 } osl_record_s;
@@ -74,9 +74,19 @@ typedef struct osl_record_cache_s {
 
 typedef struct __attribute__((__packed__)) {
     osl_record_s predecessor;
-    unsigned int length:15;
-    unsigned int is_first:1;
+    unsigned int length:14;     //!< Length of the data contained in this record
+    unsigned int is_first:1;    //!< Is this the first record of the log?
+    unsigned int has_meta:1;    //!< Is this a log entry that contains metadata?
 } osl_record_header_s;
+
+typedef struct __attribute__((__packed__)) {
+    unsigned int type:8;
+} osl_record_metadata_header_s;
+
+typedef struct __attribute__((__packed__)) {
+    osl_record_s record;
+
+} osl_record_modify_header_s;
 
 
 
