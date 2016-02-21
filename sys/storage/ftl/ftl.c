@@ -30,6 +30,12 @@
 #define MYDEBUG(...) DEBUG("%s: ", __FUNCTION__); \
                      DEBUG(__VA_ARGS__)
 
+#define HEXDUMP_BUFFER(buffer, size)    for(int i=0; i<size; i++) { \
+                                    printf("%02x ", ((unsigned char*) buffer)[i]); \
+                                    if(i%32 == 0) { printf("\n"); } \
+                                } \
+                                printf("\nbuffer ^^^^^\n");
+
 uint32_t uint32_log2(uint32_t inVal) {
     if(inVal == 0)
         return 0;
@@ -134,6 +140,7 @@ int ftl_init(ftl_device_s *device) {
 
     // TODO :D
     device->is_initialized = true;
+    device->metadata_version = 0;
     return 0;
 }
 
@@ -184,8 +191,8 @@ int ftl_write_raw(const ftl_partition_s *partition,
                      const unsigned char *buffer,
                      uint32_t subpage) {
 
-    printf("subpage: %lu, subpages in partition: %lu\n", (unsigned long) subpage,
-        (unsigned long) ftl_subpages_in_partition(partition));
+    // printf("subpage: %lu, subpages in partition: %lu\n", (unsigned long) subpage,
+    //     (unsigned long) ftl_subpages_in_partition(partition));
 
     if(subpage >= ftl_subpages_in_partition(partition)) {
         return -EFAULT;
@@ -233,30 +240,13 @@ int ftl_write(ftl_partition_s *partition,
     return 0;
 }
 
-int ftl_write_ecc(ftl_partition_s *partition,
-                      const unsigned char *buffer,
-                      uint16_t data_length) {
-
+int _prepare_subpage_buffer_with_ecc(ftl_partition_s *partition, uint16_t data_length) {
     subpageheader_s header;
-    MYDEBUG("l: %d, other: %d\n", data_length, partition->device->subpage_size - ftl_data_per_subpage(partition->device, true));
-    if(data_length >
-       ftl_data_per_subpage(partition->device, true)) {
-        return -EFBIG;
-    }
-
-    MYDEBUG("Writing to subpage %d w/ ECC\n", (int) partition->next_subpage);
-
     header.data_length = data_length;
     header.ecc_enabled = 1;
     header.reserved = 0;
 
-    // Page buffer needs to be wiped because of the ECC calculation
-    memset(partition->device->_subpage_buffer, 0x00, partition->device->subpage_size);
-
     memcpy(partition->device->_subpage_buffer, &header, sizeof(header));
-
-    memcpy(partition->device->_subpage_buffer + sizeof(header) + partition->device->ecc_size,
-           buffer, data_length);
 
     hamming_compute256x((uint8_t*)partition->device->_subpage_buffer,
                         partition->device->subpage_size,
@@ -265,6 +255,40 @@ int ftl_write_ecc(ftl_partition_s *partition,
     memcpy(partition->device->_subpage_buffer + sizeof(header),
            partition->device->_ecc_buffer,
            partition->device->ecc_size);
+
+    return 0;
+}
+
+int ftl_write_ecc(ftl_partition_s *partition,
+                      const unsigned char *buffer,
+                      uint16_t data_length) {
+
+    MYDEBUG("l: %d, other: %d\n", data_length, partition->device->subpage_size - ftl_data_per_subpage(partition->device, true));
+    if(data_length >
+       ftl_data_per_subpage(partition->device, true)) {
+        return -EFBIG;
+    }
+
+    MYDEBUG("Writing to subpage %d w/ ECC\n", (int) partition->next_subpage);
+
+
+    // Page buffer needs to be wiped because of the ECC calculation
+    memset(partition->device->_subpage_buffer, 0x00, partition->device->subpage_size);
+
+    //memcpy(partition->device->_subpage_buffer, &header, sizeof(header));
+
+    memcpy(partition->device->_subpage_buffer + sizeof(subpageheader_s) + partition->device->ecc_size,
+           buffer, data_length);
+
+    _prepare_subpage_buffer_with_ecc(partition, data_length);
+
+    // hamming_compute256x((uint8_t*)partition->device->_subpage_buffer,
+    //                     partition->device->subpage_size,
+    //                     (uint8_t*)partition->device->_ecc_buffer);
+
+    // memcpy(partition->device->_subpage_buffer + sizeof(header),
+    //        partition->device->_ecc_buffer,
+    //        partition->device->ecc_size);
 
     int ret = ftl_write_raw(partition, partition->device->_subpage_buffer, partition->next_subpage);
     if(ret < 0) {
@@ -326,8 +350,113 @@ int ftl_read(const ftl_partition_s *partition,
 
     data_buffer += sizeof(subpageheader_s);
 
-    memcpy(buffer, data_buffer, header->data_length);
+    if(buffer != 0) {
+        memcpy(buffer, data_buffer, header->data_length);
+    }
+
     return 0;
+}
+
+
+
+/* ================
+ * Metadata storage
+ * ================ */
+
+int ftl_write_metadata(ftl_device_s *device, const void *metadata, uint16_t length) {
+    if(sizeof(ftl_metadata_header_s) +
+       device->partition_count * sizeof(ftl_partition_s) +
+       length > ftl_data_per_subpage(device, true)) {
+
+        return -EFBIG;
+    }
+
+    ftl_metadata_header_s header = {
+        .version = device->metadata_version+1,
+        .foreign_metadata_length = length,
+        .partition_count = device->partition_count
+    };
+
+    int offset = sizeof(subpageheader_s) + device->ecc_size;
+    memset(device->_subpage_buffer, 0, device->subpage_size);
+
+    memcpy(device->_subpage_buffer + offset, &header, sizeof(ftl_metadata_header_s));
+    offset += sizeof(ftl_metadata_header_s);
+
+    for(unsigned int i=0; i<device->partition_count; i++) {
+        memcpy(device->_subpage_buffer + offset, device->partitions[i], sizeof(ftl_partition_s));
+        offset += sizeof(ftl_partition_s);
+    }
+
+    memcpy(device->_subpage_buffer + offset, metadata, length);
+    offset += length;
+
+    ftl_partition_s *metadata_partition = device->partitions[0];
+    _prepare_subpage_buffer_with_ecc(metadata_partition, offset+1);
+
+    int ret = ftl_write_raw(metadata_partition, device->_subpage_buffer, metadata_partition->next_subpage);
+    metadata_partition->next_subpage++;
+    device->metadata_version++;
+    return ret;
+}
+
+// TODO: use binary search based mechanism
+int ftl_load_metadata_page_with_version(ftl_device_s *device, uint32_t version, uint32_t *source_page) {
+    ftl_partition_s *metadata_partition = device->partitions[0];
+
+    ftl_metadata_header_s metadata_header;
+    subpageheader_s subpage_header;
+    int ret;
+    for(uint32_t i=0; i<ftl_subpages_in_partition(metadata_partition); i++) {
+        ret = ftl_read(metadata_partition, NULL, &subpage_header, i);
+        if(ret != 0) {
+            // In case of error reading, return the latest valid version
+            ftl_read(metadata_partition, NULL, &subpage_header, i-1);
+            *source_page = i-1;
+            return 2;
+        }
+
+        memcpy(&metadata_header, device->_subpage_buffer + sizeof(subpageheader_s) + device->ecc_size, sizeof(metadata_header));
+        if(metadata_header.version == version) {
+            *source_page = i;
+            return 1;
+        }
+    }
+
+    return -1;
+}
+
+int32_t ftl_load_latest_metadata(ftl_device_s *device, void *buffer, ftl_metadata_header_s *header, bool set_ftl_state) {
+    return ftl_load_metadata(device, buffer, header, (2<<31)-1, set_ftl_state);
+}
+
+int32_t ftl_load_metadata(ftl_device_s *device, void *buffer, ftl_metadata_header_s *header, uint32_t version, bool set_ftl_state) {
+    uint32_t source_subpage;
+    int ret = ftl_load_metadata_page_with_version(device, version, &source_subpage);
+    if(ret < 0) {
+        return ret;
+    }
+
+    int offset = sizeof(subpageheader_s) + device->ecc_size;
+    memcpy(header, device->_subpage_buffer + offset, sizeof(ftl_metadata_header_s));
+    offset += sizeof(ftl_metadata_header_s);
+
+    if(set_ftl_state) {
+        for(unsigned int i=0; i<header->partition_count; i++) {
+            memcpy(device->partitions[i], device->_subpage_buffer + offset, sizeof(ftl_partition_s));
+            offset += sizeof(ftl_partition_s);
+        }
+
+        // We need to account for the fact that the metadata partition's next_subpage was
+        // incremented after
+        device->partitions[0]->next_subpage = source_subpage+1;
+        device->partitions[0]->last_written_subpage = source_subpage;
+    } else {
+        offset += sizeof(ftl_partition_s) * header->partition_count;
+    }
+
+    memcpy(buffer, device->_subpage_buffer + offset, header->foreign_metadata_length);
+    return header->foreign_metadata_length;
 }
 
 

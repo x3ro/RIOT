@@ -35,6 +35,12 @@
 
 #define USTRNCMP(A, B, C)   strncmp((char*) A, (char*) B, C)
 
+#define HEXDUMP_BUFFER(buffer, size)    for(int i=0; i<(int)size; i++) { \
+                                    printf("%02x ", ((unsigned char*) buffer)[i]); \
+                                    if((i+1)%32 == 0) { printf("\n"); } \
+                                } \
+                                printf("\nbuffer ^^^^^\n");
+
 
 #define TEST_FTL_HEADER_SIZE 3 // sizeof(subpageheader_s)
 #define TEST_FTL_ECC_SIZE 6
@@ -330,10 +336,7 @@ static void test_write_read_raw(void) {
     ret = ftl_read_raw(&data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
-    // for(int i=0; i<FTL_SUBPAGE_SIZE; i++) {
-    //     printf("%x ", (unsigned char) page_buffer[i]);
-    // }
-    // printf("\nbuffer ^^^^^\n");
+
 
     TEST_ASSERT_EQUAL_INT(0, USTRNCMP(page_buffer, expect_buffer, FTL_SUBPAGE_SIZE));
 
@@ -543,6 +546,82 @@ static void test_format(void) {
     }
 }
 
+static void test_metadata(void) {
+    printf("%s\n", __FUNCTION__);
+
+    char test_metadata1[] = "flubbeldywubbeldy";
+    char test_metadata2[] = "schwurbel";
+
+    int ret = ftl_write_metadata(&device, test_metadata1, strlen(test_metadata1));
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    ftl_partition_s save_index = index_partition;
+    ftl_partition_s save_data = data_partition;
+
+    ret = ftl_write_metadata(&device, test_metadata2, strlen(test_metadata2));
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    ftl_metadata_header_s metadata_header;
+    char metadata_buffer[32];
+    ret = ftl_load_latest_metadata(&device, metadata_buffer, &metadata_header, false);
+    TEST_ASSERT_EQUAL_INT(strlen(test_metadata2), ret);
+    TEST_ASSERT_EQUAL_INT(2, metadata_header.version);
+    //HEXDUMP_BUFFER(metadata_buffer, 32)
+    TEST_ASSERT_EQUAL_INT(0, strncmp(test_metadata2, metadata_buffer, strlen(test_metadata2)));
+
+
+
+
+    ret = ftl_load_metadata(&device, metadata_buffer, &metadata_header, metadata_header.version-1, false);
+    TEST_ASSERT_EQUAL_INT(strlen(test_metadata1), ret);
+    TEST_ASSERT_EQUAL_INT(0, strncmp(test_metadata1, metadata_buffer, strlen(test_metadata1)));
+
+
+
+    /* ============================================
+     * write some data to change partition metadata
+     * ============================================ */
+
+    uint16_t data_length = ftl_data_per_subpage(&device, true);
+    memset(page_buffer, 0xAB, data_length);
+    ret = ftl_write(&data_partition, page_buffer, data_length);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    ret = ftl_write(&data_partition, page_buffer, data_length);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    ret = ftl_write(&data_partition, page_buffer, data_length);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+
+
+    /* ======================================================
+     * load metadata and verify it is the same as when stored
+     * ====================================================== */
+
+    // This accounts for the fact that these two indices are updated after the metadata
+    // page has already been written.
+    save_index.next_subpage++;
+    save_index.last_written_subpage++;
+
+    TEST_ASSERT(memcmp(&data_partition, &save_data, sizeof(ftl_partition_s)) != 0);
+    TEST_ASSERT(memcmp(&index_partition, &save_index, sizeof(ftl_partition_s)) != 0);
+
+    ret = ftl_load_latest_metadata(&device, metadata_buffer, &metadata_header, true);
+    TEST_ASSERT_EQUAL_INT(strlen(test_metadata2), ret);
+    TEST_ASSERT_EQUAL_INT(2, metadata_header.version);
+
+    // HEXDUMP_BUFFER(&save_data, sizeof(ftl_partition_s));
+    // HEXDUMP_BUFFER(&data_partition, sizeof(ftl_partition_s));
+
+    // HEXDUMP_BUFFER(&save_index, sizeof(ftl_partition_s));
+    // HEXDUMP_BUFFER(&index_partition, sizeof(ftl_partition_s));
+
+    TEST_ASSERT_EQUAL_INT(0, memcmp(&data_partition, &save_data, sizeof(ftl_partition_s)));
+    TEST_ASSERT_EQUAL_INT(0, memcmp(&index_partition, &save_index, sizeof(ftl_partition_s)));
+
+    ret = ftl_write_metadata(&device, test_metadata1, strlen(test_metadata1));
+    TEST_ASSERT_EQUAL_INT(0, ret);
+}
+
 
 Test *testsrunner(void) {
     EMB_UNIT_TESTFIXTURES(fixtures) {
@@ -555,6 +634,7 @@ Test *testsrunner(void) {
         new_TestFixture(test_write_read_ecc),
         new_TestFixture(test_out_of_bounds),
         new_TestFixture(test_format),
+        new_TestFixture(test_metadata),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);

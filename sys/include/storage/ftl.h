@@ -173,12 +173,16 @@ typedef struct {
  * @brief Describes a device managed by the FTL.
  */
 typedef struct ftl_device_s {
+    uint32_t metadata_version;
+
     uint32_t total_pages;       //!< Total amount of pages configured for the device
     uint16_t page_size;         //!< Page size configured for the device
     uint16_t subpage_size;      //!< Subpage size
     uint16_t pages_per_block;   //!< Amount of pages inside an erase segment (block)
     uint8_t ecc_size;           //!< Size of the ECC determined for device's subpage size
     bool is_initialized;
+
+
 
     uint8_t partition_count;
     ftl_partition_s **partitions;
@@ -355,6 +359,28 @@ int ftl_write_raw(const ftl_partition_s *partition,
 int ftl_read_raw(const ftl_partition_s *partition,
                          unsigned char *buffer,
                          uint32_t subpage);
+
+
+
+/**
+ * The ftl_metadata_header is always written at the start of a page, followed by the
+ * the following (in this order)
+ *
+ *    - $partition_count * sizeof(ftl_partition_s) bytes of partition information
+ *    - $foreign_metadata_length bytes of metadata belonging to the OSL, or another
+ *      system built on top of the FTL.
+ */
+typedef struct __attribute__((__packed__)) {
+    uint32_t version;
+    uint16_t foreign_metadata_length;
+    uint8_t partition_count;
+} ftl_metadata_header_s;
+
+
+int ftl_load_metadata_page_with_version(ftl_device_s *device, uint32_t version, uint32_t *source_page);
+int ftl_write_metadata(ftl_device_s *device, const void *metadata, uint16_t length);
+int32_t ftl_load_latest_metadata(ftl_device_s *device, void *buffer, ftl_metadata_header_s *header, bool set_ftl_state);
+int32_t ftl_load_metadata(ftl_device_s *device, void *buffer, ftl_metadata_header_s *header, uint32_t version, bool set_ftl_state);
 
 
 
