@@ -33,19 +33,19 @@
                      DEBUG(__VA_ARGS__);
 
 
-int64_t _find_first_index_page(osl_s *osl) {
-    subpageheader_s header;
-    int ret = ftl_read(&osl->device->index_partition, (char*)osl->subpage_buffer, &header, 0);
+// int64_t _find_first_index_page(osl_s *osl) {
+//     subpageheader_s header;
+//     int ret = ftl_read(&osl->device->index_partition, (char*)osl->subpage_buffer, &header, 0);
 
-    if(ret == -ENOENT) {
-        MYDEBUG("Detected empty index partition. Assuming file system is empty\n");
-        return -1;
-    }
+//     if(ret == -ENOENT) {
+//         MYDEBUG("Detected empty index partition. Assuming file system is empty\n");
+//         return -1;
+//     }
 
-    // TODO: Implement index partition scan algorithm
-    assert(false);
-    return -1;
-}
+//     // TODO: Implement index partition scan algorithm
+//     assert(false);
+//     return -1;
+// }
 
 
 
@@ -100,11 +100,10 @@ int _osl_buffer_read_datum(unsigned char *buffer, osl_record_s* record, void* da
 }
 
 int _osl_buffer_flush(osl_s* osl) {
-    MYDEBUG("Flushing buffer to page %d\n", osl->next_data_subpage);
+    MYDEBUG("Flushing buffer to page %d\n", osl->data_partition->next_subpage);
 
-    int ret = ftl_write_ecc(&osl->device->data_partition,
-                            (char *) osl->subpage_buffer,
-                            osl->next_data_subpage,
+    int ret = ftl_write_ecc(osl->data_partition,
+                            osl->subpage_buffer,
                             osl->subpage_buffer_size);
 
     if(ret != 0) {
@@ -113,7 +112,7 @@ int _osl_buffer_flush(osl_s* osl) {
 
     memset(osl->subpage_buffer, 0, osl->subpage_buffer_size);
     osl->subpage_buffer_cursor = 0;
-    osl->next_data_subpage++;
+    // osl->next_data_subpage++;
     return 0;
 }
 
@@ -125,12 +124,11 @@ int _osl_buffer_flush(osl_s* osl) {
 int _osl_read_page(osl_s* osl, uint32_t subpage) {
     MYDEBUG("Reading subpage %d\n", subpage);
     subpageheader_s header;
-    int ret = ftl_read(&osl->device->data_partition, (char*) osl->read_buffer, &header, subpage);
+    int ret = ftl_read(osl->data_partition, osl->read_buffer, &header, subpage);
     if(ret != 0) {
         return ret;
     }
 
-    osl->read_buffer_partition = OSL_DATA_PARTITION;
     osl->read_buffer_subpage = subpage;
     return 0;
 }
@@ -140,15 +138,14 @@ int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s
     MYDEBUG("subpage %d, offset %d, next_data_subpage %d, read_buffer_subpage %d\n",
         record->subpage,
         record->offset,
-        osl->next_data_subpage,
+        osl->data_partition->next_subpage,
         osl->read_buffer_subpage);
 
-    if(record->subpage == osl->next_data_subpage) {
+    if(record->subpage == osl->data_partition->next_subpage) {
         // Record is still in page buffer
         return _osl_buffer_read_header(osl->subpage_buffer, record, rh);
 
-    } else if(  osl->read_buffer_partition == OSL_DATA_PARTITION &&
-                osl->read_buffer_subpage == record->subpage) {
+    } else if(osl->read_buffer_subpage == record->subpage) {
         // record is in read buffer
         return _osl_buffer_read_header(osl->read_buffer, record, rh);
 
@@ -167,11 +164,10 @@ int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s
 
 int _osl_record_datum_get(osl_s* osl, osl_record_s* record, void* datum, int offset, int size) {
 
-    if(record->subpage == osl->next_data_subpage) {
+    if(record->subpage == osl->data_partition->next_subpage) {
         return _osl_buffer_read_datum(osl->subpage_buffer, record, datum, offset, size);
 
-    } else if(  osl->read_buffer_partition == OSL_DATA_PARTITION &&
-                osl->read_buffer_subpage == record->subpage) {
+    } else if(osl->read_buffer_subpage == record->subpage) {
         return _osl_buffer_read_datum(osl->read_buffer, record, datum, offset, size);
 
     }
@@ -227,7 +223,7 @@ int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
         return -EIO;
     }
 
-    object->tail.subpage = od->osl->next_data_subpage;
+    object->tail.subpage = od->osl->data_partition->next_subpage;
     object->tail.offset = record_offset;
     object->num_objects++;
 
@@ -339,7 +335,7 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
 
 
 
-int osl_init(osl_s *osl, ftl_device_s *device) {
+int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s *data_partition) {
     MYDEBUG("Initializing OSL\n");
     osl->device = device;
 
@@ -357,21 +353,22 @@ int osl_init(osl_s *osl, ftl_device_s *device) {
         return -ENOMEM;
     }
 
-    osl->read_buffer_partition = -1;
+    //osl->read_buffer_partition = -1;
     osl->read_buffer_subpage = 0;
 
     osl->record_cache_object = -1;
+    osl->data_partition = data_partition;
 
-    int64_t first_index_page = _find_first_index_page(osl);
-    if(first_index_page < 0) {
-        osl->next_data_subpage = 0;
-        osl->next_index_subpage = 0;
-        osl->latest_index.first_page = 0;
+    //int64_t first_index_page = _find_first_index_page(osl);
+    //if(first_index_page < 0) {
+    //osl->next_data_subpage = 0;
+    //osl->next_index_subpage = 0;
+    //osl->latest_index.first_page = 0;
 
-    } else {
+    //} else {
         // restore index state to memory
-        return -1;
-    }
+    //    return -1;
+    //}
 
     osl->open_objects = 0;
     return 0;

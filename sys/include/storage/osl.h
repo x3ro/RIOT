@@ -47,9 +47,9 @@ typedef struct osl_index_page_header_s {
                                   index page belongs */
 } osl_index_page_s;
 
-typedef struct osl_index_entry_s {
-    uint32_t first_page; /**< First page of the index entry */
-} osl_index_entry_s;
+// typedef struct osl_index_entry_s {
+//     uint32_t first_page; /**< First page of the index entry */
+// } osl_index_entry_s;
 
 
 
@@ -102,18 +102,18 @@ typedef struct osl_object {
 typedef struct osl_s {
     ftl_device_s *device;
 
-    osl_index_entry_s latest_index;
-
     uint16_t subpage_buffer_size;
     uint16_t subpage_buffer_cursor; /**< The first free byte in the page buffer, 0-indexed */
     unsigned char* subpage_buffer;
 
     unsigned char* read_buffer;
     uint32_t read_buffer_subpage;
-    int8_t read_buffer_partition; // if == -1, no page is in read buffer, 0 = index, 1 = data
+    //int8_t read_buffer_partition; // if == -1, no page is in read buffer, 0 = index, 1 = data
 
-    uint32_t next_data_subpage;  // Next page to be written in data partition
-    uint32_t next_index_subpage; // Next page to be written in index partition
+    //uint32_t next_data_subpage;  // Next page to be written in data partition
+    //uint32_t next_metadata_subpage; // Next page to be written in index partition
+    //
+    ftl_partition_s *data_partition;
 
     uint8_t open_objects;
     osl_object_s objects[OSL_MAX_OPEN_OBJECTS];
@@ -139,7 +139,7 @@ typedef struct osl_od {
  * @param device An FTL device which must have been initialized
  * @return  errno
  */
-int osl_init(osl_s *osl, ftl_device_s *device);
+int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s* data_partition);
 
 // Opens a stream, or creates it if it doesnt exist
 int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size);
