@@ -215,6 +215,7 @@ int _osl_log_record_append(osl_od* od, void* data, uint16_t data_length) {
     if(record_offset == -EIO) {
         int ret = _osl_buffer_flush(od->osl);
         if(ret < 0) {
+            MYDEBUG("failed to flush\n");
             return ret;
         }
 
@@ -370,7 +371,15 @@ int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s *data_partition) 
     //    return -1;
     //}
 
-    osl->open_objects = 0;
+    ftl_metadata_header_s header;
+    ftl_load_latest_metadata(device, osl->record_cache, &header, true);
+
+    if(header.version != 0) {
+        osl->open_objects = 1;
+    } else {
+        osl->open_objects = 0;
+    }
+
     return 0;
 }
 

@@ -3,7 +3,15 @@
             "name": "benchmark-osl",
             "path": "examples/benchmark-osl",
             "file_exclude_patterns": [".DS_Store", "._*"]
-        }, {
+        },
+
+        {
+            "name": "osl-demo",
+            "path": "examples/osl-demo",
+            "file_exclude_patterns": [".DS_Store", "._*"]
+        },
+
+        {
             "name": "sys/storage",
             "path": "sys/storage",
             "file_exclude_patterns": [".DS_Store", "._*"]

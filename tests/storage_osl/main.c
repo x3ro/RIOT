@@ -292,18 +292,33 @@ static void test_stream_beyond_buffer(void) {
 
     uint64_t x;
 
+    osl_od stream1;
+    ret = osl_stream(&osl, &stream1, "test:large_stream_int", sizeof(int));
+    TEST_ASSERT(ret >= 0);
+
+    int x1;
+
+    for(int i=0; i < 3000; i++) {
+        x1 = i;
+        ret = osl_stream_append(&stream1, &x1);
+        TEST_ASSERT_EQUAL_INT(0, ret);
+    }
+
     for(int i=0; i < 3000; i++) {
         x = i;
         ret = osl_stream_append(&stream, &x);
         TEST_ASSERT_EQUAL_INT(0, ret);
     }
-    printf("Write done\n");
 
     for(int i=0; i < 3000; i++) {
         ret = osl_stream_get(&stream, &x, i);
         TEST_ASSERT_EQUAL_INT(i, x);
     }
-    printf("Read done\n");
+
+    for(int i=0; i < 3000; i++) {
+        ret = osl_stream_get(&stream1, &x1, i);
+        TEST_ASSERT_EQUAL_INT(i, x1);
+    }
 }
 
 static void test_metadata_saving(void) {

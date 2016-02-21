@@ -292,6 +292,7 @@ int ftl_write_ecc(ftl_partition_s *partition,
 
     int ret = ftl_write_raw(partition, partition->device->_subpage_buffer, partition->next_subpage);
     if(ret < 0) {
+        printf("write raw failed\n");
         return ret;
     }
 
@@ -433,6 +434,7 @@ int32_t ftl_load_latest_metadata(ftl_device_s *device, void *buffer, ftl_metadat
 int32_t ftl_load_metadata(ftl_device_s *device, void *buffer, ftl_metadata_header_s *header, uint32_t version, bool set_ftl_state) {
     uint32_t source_subpage;
     int ret = ftl_load_metadata_page_with_version(device, version, &source_subpage);
+    printf("ret %d version %d\n", ret, header->version);
     if(ret < 0) {
         return ret;
     }
@@ -442,6 +444,7 @@ int32_t ftl_load_metadata(ftl_device_s *device, void *buffer, ftl_metadata_heade
     offset += sizeof(ftl_metadata_header_s);
 
     if(set_ftl_state) {
+        printf("loading %d partitions\n", header->partition_count);
         for(unsigned int i=0; i<header->partition_count; i++) {
             memcpy(device->partitions[i], device->_subpage_buffer + offset, sizeof(ftl_partition_s));
             offset += sizeof(ftl_partition_s);

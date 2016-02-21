@@ -549,10 +549,19 @@ static void test_format(void) {
 static void test_metadata(void) {
     printf("%s\n", __FUNCTION__);
 
+    int ret;
+    // int ret = ftl_format(&index_partition);
+    // TEST_ASSERT_EQUAL_INT(0, ret);
+
+    ftl_metadata_header_s metadata_header;
+    char metadata_buffer[32];
     char test_metadata1[] = "flubbeldywubbeldy";
     char test_metadata2[] = "schwurbel";
 
-    int ret = ftl_write_metadata(&device, test_metadata1, strlen(test_metadata1));
+    ret = ftl_load_latest_metadata(&device, metadata_buffer, &metadata_header, true);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    ret = ftl_write_metadata(&device, test_metadata1, strlen(test_metadata1));
     TEST_ASSERT_EQUAL_INT(0, ret);
 
     ftl_partition_s save_index = index_partition;
@@ -561,8 +570,8 @@ static void test_metadata(void) {
     ret = ftl_write_metadata(&device, test_metadata2, strlen(test_metadata2));
     TEST_ASSERT_EQUAL_INT(0, ret);
 
-    ftl_metadata_header_s metadata_header;
-    char metadata_buffer[32];
+
+
     ret = ftl_load_latest_metadata(&device, metadata_buffer, &metadata_header, false);
     TEST_ASSERT_EQUAL_INT(strlen(test_metadata2), ret);
     TEST_ASSERT_EQUAL_INT(2, metadata_header.version);
