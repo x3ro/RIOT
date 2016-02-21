@@ -204,9 +204,8 @@ int ftl_write_raw(const ftl_partition_s *partition,
 }
 
 
-int ftl_write(const ftl_partition_s *partition,
+int ftl_write(ftl_partition_s *partition,
                       const unsigned char *buffer,
-                      uint32_t subpage,
                       uint16_t data_length) {
 
     subpageheader_s header;
@@ -214,7 +213,7 @@ int ftl_write(const ftl_partition_s *partition,
         return -EFBIG;
     }
 
-    MYDEBUG("Writing to subpage %d\n", (int) subpage);
+    MYDEBUG("Writing to subpage %d\n", (int) partition->next_subpage);
 
     header.data_length = data_length;
     header.ecc_enabled = 0;
@@ -222,12 +221,20 @@ int ftl_write(const ftl_partition_s *partition,
 
     memcpy(partition->device->_subpage_buffer, &header, sizeof(header));
     memcpy(partition->device->_subpage_buffer + sizeof(header), buffer, data_length);
-    return ftl_write_raw(partition, partition->device->_subpage_buffer, subpage);
+
+
+    int ret = ftl_write_raw(partition, partition->device->_subpage_buffer, partition->next_subpage);
+    if(ret < 0) {
+        return ret;
+    }
+
+    partition->last_written_subpage = partition->next_subpage;
+    partition->next_subpage++;
+    return 0;
 }
 
-int ftl_write_ecc(const ftl_partition_s *partition,
+int ftl_write_ecc(ftl_partition_s *partition,
                       const unsigned char *buffer,
-                      uint32_t subpage,
                       uint16_t data_length) {
 
     subpageheader_s header;
@@ -237,7 +244,7 @@ int ftl_write_ecc(const ftl_partition_s *partition,
         return -EFBIG;
     }
 
-    MYDEBUG("Writing to subpage %d w/ ECC\n", (int) subpage);
+    MYDEBUG("Writing to subpage %d w/ ECC\n", (int) partition->next_subpage);
 
     header.data_length = data_length;
     header.ecc_enabled = 1;
@@ -259,7 +266,14 @@ int ftl_write_ecc(const ftl_partition_s *partition,
            partition->device->_ecc_buffer,
            partition->device->ecc_size);
 
-    return ftl_write_raw(partition, partition->device->_subpage_buffer, subpage);
+    int ret = ftl_write_raw(partition, partition->device->_subpage_buffer, partition->next_subpage);
+    if(ret < 0) {
+        return ret;
+    }
+
+    partition->last_written_subpage = partition->next_subpage;
+    partition->next_subpage++;
+    return 0;
 }
 
 int ftl_read(const ftl_partition_s *partition,
@@ -315,4 +329,5 @@ int ftl_read(const ftl_partition_s *partition,
     memcpy(buffer, data_buffer, header->data_length);
     return 0;
 }
+
 

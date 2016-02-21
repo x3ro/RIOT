@@ -88,20 +88,14 @@ ftl_device_s device = {
 ftl_partition_s index_partition = {
     .device = &device,
     .base_offset = 0,
-    .size = 4,
-    .next_page = 0,
-    .erased_until = 0,
-    .free_until = 0
+    .size = 4
 };
 
 
 ftl_partition_s data_partition = {
     .device = &device,
     .base_offset = 4,
-    .size = 27,
-    .next_page = 0,
-    .erased_until = 0,
-    .free_until = 0
+    .size = 27
 };
 
 
@@ -170,20 +164,14 @@ ftl_device_s device = {
 ftl_partition_s index_partition = {
     .device = &device,
     .base_offset = 0,
-    .size = 4,
-    .next_page = 0,
-    .erased_until = 0,
-    .free_until = 0
+    .size = 4
 };
 
 
 ftl_partition_s data_partition = {
     .device = &device,
     .base_offset = 4,
-    .size = 27,
-    .next_page = 0,
-    .erased_until = 0,
-    .free_until = 0
+    .size = 27
 };
 
 
@@ -332,13 +320,13 @@ static void test_write_read_raw(void) {
     printf("%s\n", __FUNCTION__);
     int ret;
 
-    uint32_t block = 0;
+    uint32_t block = 2;
     ret = ftl_erase(&data_partition, block);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
     memset(page_buffer, 0x0, FTL_SUBPAGE_SIZE);
     memset(expect_buffer, 0xFF, FTL_SUBPAGE_SIZE);
-    uint32_t subpage = 0;
+    uint32_t subpage = ftl_first_subpage_of_block(&device, block);
     ret = ftl_read_raw(&data_partition, page_buffer, subpage);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
@@ -379,7 +367,7 @@ static void test_write_read(void) {
     printf("%s\n", __FUNCTION__);
     int ret;
 
-    uint32_t block = 2;
+    uint32_t block = 0;
     ret = ftl_erase(&data_partition, block);
 
     bool ecc_enabled = false;
@@ -389,11 +377,16 @@ static void test_write_read(void) {
 
     uint32_t subpage = ftl_first_subpage_of_block(&device, block);
 
-    ret = ftl_write(&data_partition, page_buffer, subpage, 512);
+    ret = ftl_write(&data_partition, page_buffer, 512);
     TEST_ASSERT_EQUAL_INT(-EFBIG, ret);
 
-    ret = ftl_write(&data_partition, page_buffer, subpage, data_length);
+    ret = ftl_write(&data_partition, page_buffer, data_length);
     TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(0, data_partition.last_written_subpage);
+
+    ret = ftl_write(&data_partition, page_buffer, data_length/2);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(1, data_partition.last_written_subpage);
 
     subpageheader_s header;
     ret = ftl_read(&data_partition, page_buffer, &header, subpage);
@@ -401,13 +394,19 @@ static void test_write_read(void) {
     TEST_ASSERT_EQUAL_INT(data_length, header.data_length);
     memset(expect_buffer, 0xAB, data_length);
     TEST_ASSERT_EQUAL_INT(0, USTRNCMP(page_buffer, expect_buffer, data_length));
+
+    ret = ftl_read(&data_partition, page_buffer, &header, subpage+1);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(data_length/2, header.data_length);
+    memset(expect_buffer, 0xAB, data_length/2);
+    TEST_ASSERT_EQUAL_INT(0, USTRNCMP(page_buffer, expect_buffer, data_length/2));
 }
 
 static void test_write_read_ecc(void) {
     printf("%s\n", __FUNCTION__);
     int ret;
 
-    uint32_t block = 3;
+    uint32_t block = 0;
     ret = ftl_erase(&data_partition, block);
 
     bool ecc_enabled = true;
@@ -415,13 +414,14 @@ static void test_write_read_ecc(void) {
     TEST_ASSERT_EQUAL_INT(FTL_SUBPAGE_SIZE - TEST_FTL_HEADER_SIZE - TEST_FTL_ECC_SIZE, data_length); // 2 bytes header + 6 ECC removed
     memset(page_buffer, 0xAB, data_length);
 
-    uint32_t subpage = ftl_first_subpage_of_block(&device, block);
+    uint32_t subpage;
 
-    ret = ftl_write_ecc(&data_partition, page_buffer, subpage, 512);
+    ret = ftl_write_ecc(&data_partition, page_buffer, 512);
     TEST_ASSERT_EQUAL_INT(-EFBIG, ret);
 
-    ret = ftl_write_ecc(&data_partition, page_buffer, subpage, data_length);
+    ret = ftl_write_ecc(&data_partition, page_buffer, data_length);
     TEST_ASSERT_EQUAL_INT(0, ret);
+    subpage = data_partition.last_written_subpage;
 
     subpageheader_s header;
     ret = ftl_read(&data_partition, page_buffer, &header, subpage);

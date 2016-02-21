@@ -155,8 +155,12 @@ typedef struct {
     uint32_t base_offset;           //!< Zero-indexed absolute offset of the partition __in blocks__.
     uint32_t size;                  //!< Size of the partition __in blocks__.
 
+    uint32_t next_subpage;             //!< The next page to be written by the FTL
+    uint32_t last_written_subpage;     //!< Page that was last written in this partition.
+                                    //   Must not necessarily be next_page-1, because block
+                                    //   may have been faulty.
+
     // See Sect. Free Space Management
-    uint32_t next_page;             //!< The next page to be written by the FTL
     uint32_t erased_until;          //!< Pointer to the last erased block
     uint32_t free_until;            //!< Pointer to the last known free block
 } ftl_partition_s;
@@ -284,9 +288,8 @@ int ftl_read(const ftl_partition_s *partition,
  * @return             0 on success
  * @return             -EFBIG if the given data does not fit into a subpage
  */
-int ftl_write(const ftl_partition_s *partition,
+int ftl_write(ftl_partition_s *partition,
                       const unsigned char *buffer,
-                      uint32_t subpage,
                       uint16_t data_length);
 
 /**
@@ -300,9 +303,8 @@ int ftl_write(const ftl_partition_s *partition,
  *
  * @see #ftl_write
  */
-int ftl_write_ecc(const ftl_partition_s *partition,
+int ftl_write_ecc(ftl_partition_s *partition,
                       const unsigned char *buffer,
-                      uint32_t subpage,
                       uint16_t data_length);
 
 
