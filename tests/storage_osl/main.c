@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "embUnit.h"
 #include "xtimer.h"
@@ -105,10 +106,12 @@ ftl_partition_s *partitions[] = {
 #ifdef BOARD_MSBA2
 
 #include <diskio.h>
+
+
 #define FTL_PAGE_SIZE 512
 #define FTL_SUBPAGE_SIZE 512
 #define FTL_PAGES_PER_BLOCK 1024
-#define FTL_TOTAL_PAGES 16384 // Using 8 MB for now
+#define FTL_TOTAL_PAGES 32768
 
 int write(const unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
     assert(offset == 0);
@@ -137,7 +140,7 @@ unsigned char subpage_buffer[512];
 unsigned char ecc_buffer[6];
 
 ftl_device_s device = {
-    .total_pages = 16384,
+    .total_pages = 32768,
     .page_size = 512,
     .subpage_size = 512,
     .pages_per_block = 1024,
@@ -186,6 +189,56 @@ static void test_init_osl_too_early(void) {
     TEST_ASSERT_EQUAL_INT(-ENODEV, ret);
 }
 
+#ifdef BOARD_MSBA2
+
+static void test_init_ftl(void) {
+    DSTATUS status = MCI_initialize();
+    if(status == STA_NOINIT) {
+        printf("Could not initialize MCI interface :(\n");
+    } else if(status == STA_NODISK) {
+        printf("NO SDCard detected. Aborting\n");
+    } else if(status == STA_PROTECT) {
+        printf("SDCard is in read-only mode\n");
+    }
+
+    TEST_ASSERT_EQUAL_INT(0, status);
+
+    unsigned long sector_count = 0;
+    MCI_ioctl(GET_SECTOR_COUNT, &sector_count);
+    printf("sector_count: %lu\n", sector_count);
+
+    unsigned short sector_size = 0;
+    MCI_ioctl(GET_SECTOR_SIZE, &sector_size);
+    printf("sector_size: %hu\n", sector_size);
+
+    unsigned long block_size = 0;
+    MCI_ioctl(GET_BLOCK_SIZE, &block_size);
+    printf("block_size: %lu\n", block_size);
+
+    device.partitions = partitions;
+
+    // device.page_size = FTL_PAGE_SIZE;
+    // device.subpage_size = FTL_SUBPAGE_SIZE;
+    // device.pages_per_block = FTL_PAGES_PER_BLOCK;
+    // device.total_pages = FTL_TOTAL_PAGES;
+
+    int ret = ftl_init(&device);
+    TEST_ASSERT(index_partition.device != 0);
+    TEST_ASSERT_EQUAL_INT(0, index_partition.base_offset);
+    TEST_ASSERT_EQUAL_INT(4, index_partition.size);
+
+    TEST_ASSERT(data_partition.device != 0);
+    TEST_ASSERT_EQUAL_INT(4, data_partition.base_offset);
+    TEST_ASSERT_EQUAL_INT(27, data_partition.size);
+
+    TEST_ASSERT_EQUAL_INT(6, device.ecc_size);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+}
+
+#endif /* Board MSBA2 */
+
+#ifdef BOARD_NATIVE
+
 static void test_init_ftl(void) {
     // device.write = write;
     // device.read = read;
@@ -196,12 +249,14 @@ static void test_init_ftl(void) {
     // device.total_pages = 32768;
     //
     device.partitions = partitions;
+    int ret;
 
     fs.page_size = device.page_size;
     fs.block_size = device.pages_per_block * device.page_size;
     fs.storage_size = device.total_pages * device.page_size;
-    int ret = flash_sim_init(&fs);
+    ret = flash_sim_init(&fs);
     TEST_ASSERT_EQUAL_INT(0, ret);
+
 
     ret = ftl_init(&device);
     TEST_ASSERT_EQUAL_INT(0, ret);
@@ -212,6 +267,8 @@ static void test_init_ftl(void) {
     ret = ftl_format(&data_partition);
     TEST_ASSERT_EQUAL_INT(0, ret);
 }
+
+#endif
 
 static void test_init_osl(void) {
     int ret = osl_init(&osl, &device, &data_partition);
