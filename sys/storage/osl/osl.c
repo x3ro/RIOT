@@ -143,9 +143,11 @@ int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s
 
     if(record->subpage == osl->data_partition->next_subpage) {
         // Record is still in page buffer
+        //printf("sadasd\n");
         return _osl_buffer_read_header(osl->subpage_buffer, record, rh);
 
     } else if(osl->read_buffer_subpage == record->subpage) {
+        //printf("xxxxxx\n");
         // record is in read buffer
         return _osl_buffer_read_header(osl->read_buffer, record, rh);
 
@@ -156,6 +158,9 @@ int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s
     if(ret != 0) {
         return ret;
     }
+
+    //printf("a %d b %d\n", osl->read_buffer_subpage, record->subpage);
+    assert(osl->read_buffer_subpage == record->subpage);
 
     // Now that the page is in the read buffer, we can safely recurse to get
     // the subpage
@@ -302,6 +307,7 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
         // log, which is most certainly a bug.
         assert(rh.is_first == 0);
 
+        MYDEBUG("steps back %d\n", steps_back);
         steps_back -= rh.length / object->object_size;
 
         if(record.subpage != rh.predecessor.subpage) {
@@ -372,13 +378,19 @@ int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s *data_partition) 
     //}
 
     ftl_metadata_header_s header;
-    ftl_load_latest_metadata(device, osl->record_cache, &header, true);
+    int ret = ftl_load_latest_metadata(device, osl->objects, &header, true);
 
-    if(header.version != 0) {
-        osl->open_objects = 1;
-    } else {
+    if(ret < 0) {
         osl->open_objects = 0;
+    } else {
+        osl->open_objects = header.foreign_metadata_length / sizeof(osl_object_s);
     }
+
+    // if(header.version != 0) {
+    //     osl->open_objects = 1;
+    // } else {
+    //     osl->open_objects = 0;
+    // }
 
     return 0;
 }
@@ -396,6 +408,13 @@ int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size) {
     }
 
     // TODO: Make sure to check if the object already exists!!!
+    for(uint8_t i=0; i<osl->open_objects; i++) {
+        if(strncmp(osl->objects[i].name, name, OSL_MAX_NAME_LENGTH) == 0) {
+            od->osl = osl;
+            od->index = i;
+            return 0;
+        }
+    }
 
     osl_object_s* obj = &osl->objects[osl->open_objects];
     memcpy(obj->name, name, strlen(name)+1);
@@ -422,6 +441,22 @@ osl_object_s* osl_get_object(osl_od* od) {
     return &od->osl->objects[od->index];
 }
 
+int osl_iterator(osl_od* od, osl_iter *iter) {
+    iter->od = *od;
+    iter->index = 0;
+    return 0;
+}
+
+int osl_create_checkpoint(osl_s* osl) {
+    printf("Creating checkpoint\n\topen objects: %d\n", osl->open_objects);
+    int ret = _osl_buffer_flush(osl);
+    if(ret != 0) {
+        return ret;
+    }
+
+    uint16_t size = sizeof(osl_object_s) * osl->open_objects;
+    return ftl_write_metadata(osl->device, osl->objects, size);
+}
 // int osl_object_close(osl_od* od) {
 //     osl_object_s* object = osl_get_object(od);
 

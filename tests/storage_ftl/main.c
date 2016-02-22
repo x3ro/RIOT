@@ -550,7 +550,8 @@ static void test_metadata(void) {
     printf("%s\n", __FUNCTION__);
 
     int ret;
-    // int ret = ftl_format(&index_partition);
+
+    // ret = ftl_format(&index_partition);
     // TEST_ASSERT_EQUAL_INT(0, ret);
 
     ftl_metadata_header_s metadata_header;

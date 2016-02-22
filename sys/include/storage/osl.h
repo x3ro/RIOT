@@ -37,6 +37,8 @@ extern "C" {
 #define OSL_DATA_PARTITION 1
 
 
+#define OSL_STREAM_NEXT(target, iter)     iter.index < iter.od.osl->objects[iter.od.index].num_objects && !osl_stream_get(&iter.od, &target, iter.index++)
+
 
 
 
@@ -132,6 +134,10 @@ typedef struct osl_od {
     int index; // Index of this object in the osl_s objects array
 } osl_od;
 
+typedef struct osl_iter {
+    osl_od od;
+    uint32_t index; // Current index of the iterator
+} osl_iter;
 
 
 /**
@@ -145,7 +151,8 @@ int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s* data_partition);
 int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size);
 int osl_stream_append(osl_od* cd, void* object);
 int osl_stream_get(osl_od* cd, void* object_buffer, unsigned long index);
-
+int osl_create_checkpoint(osl_s* osl);
+int osl_iterator(osl_od* od, osl_iter *iter);
 
 /**
  * Helper function to get the referenced object from an object descriptor.

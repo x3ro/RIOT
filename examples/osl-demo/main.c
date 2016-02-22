@@ -56,6 +56,7 @@ int read(unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length)
 }
 
 int erase(uint32_t block) {
+    printf("erasing\n");
     return flash_sim_ftl_erase(&fs, block);
 }
 
@@ -194,10 +195,10 @@ int main(void)
     ret = ftl_init(&device);
     assert(ret == 0);
 
-    ret = ftl_format(&index_partition);
-    assert(ret == 0);
-    ret = ftl_format(&data_partition);
-    assert(ret == 0);
+    // ret = ftl_format(&index_partition);
+    // assert(ret == 0);
+    // ret = ftl_format(&data_partition);
+    // assert(ret == 0);
 
     ret = osl_init(&osl, &device, &data_partition);
     assert(ret == 0);
@@ -210,16 +211,32 @@ int main(void)
     printf("size of stream %d", obj->num_objects);
     printf("\n\n");
 
+    printf("Previous content:\n\n");
+    osl_iter iter;
+    osl_iterator(&stream, &iter);
+    char c;
+    while(OSL_STREAM_NEXT(c, iter)) {
+        printf("%c", c);
+    }
+
+    printf("\n\nAdd new content: \n\n");
+
 
     while(1) {
         int ch = getchar();
+        printf("(%d)\n", ch);
         if(ch == -1) {
             break;
         }
         ret = osl_stream_append(&stream, &ch);
+        if(ret != 0) {
+            printf("error %d\n", ret);
+        }
     }
 
     printf("size of stream %d\n", obj->num_objects);
+    osl_create_checkpoint(&osl);
+
     lpm_set(LPM_POWERDOWN);
     return 0;
 }
