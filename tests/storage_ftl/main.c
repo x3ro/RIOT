@@ -121,7 +121,7 @@ ftl_partition_s *partitions[] = {
 #define FTL_PAGE_SIZE 512
 #define FTL_SUBPAGE_SIZE 512
 #define FTL_PAGES_PER_BLOCK 1024
-#define FTL_TOTAL_PAGES 16384 // Using 8 MB for now
+#define FTL_TOTAL_PAGES 32768
 
 int write(const unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
     assert(offset == 0);
@@ -150,7 +150,7 @@ unsigned char subpage_buffer[512];
 unsigned char ecc_buffer[6];
 
 ftl_device_s device = {
-    .total_pages = 16384,
+    .total_pages = 32768,
     .page_size = 512,
     .subpage_size = 512,
     .pages_per_block = 1024,
@@ -262,19 +262,19 @@ static void test_init(void) {
 
     device.partitions = partitions;
 
-    device.page_size = FTL_PAGE_SIZE;
-    device.subpage_size = FTL_SUBPAGE_SIZE;
-    device.pages_per_block = FTL_PAGES_PER_BLOCK;
-    device.total_pages = FTL_TOTAL_PAGES;
+    // device.page_size = FTL_PAGE_SIZE;
+    // device.subpage_size = FTL_SUBPAGE_SIZE;
+    // device.pages_per_block = FTL_PAGES_PER_BLOCK;
+    // device.total_pages = FTL_TOTAL_PAGES;
 
     int ret = ftl_init(&device);
     TEST_ASSERT(index_partition.device != 0);
     TEST_ASSERT_EQUAL_INT(0, index_partition.base_offset);
-    TEST_ASSERT_EQUAL_INT(8, index_partition.size);
+    TEST_ASSERT_EQUAL_INT(4, index_partition.size);
 
     TEST_ASSERT(data_partition.device != 0);
-    TEST_ASSERT_EQUAL_INT(8, data_partition.base_offset);
-    TEST_ASSERT_EQUAL_INT(8, data_partition.size);
+    TEST_ASSERT_EQUAL_INT(4, data_partition.base_offset);
+    TEST_ASSERT_EQUAL_INT(27, data_partition.size);
 
     TEST_ASSERT_EQUAL_INT(6, device.ecc_size);
     TEST_ASSERT_EQUAL_INT(0, ret);
@@ -306,8 +306,8 @@ static void test_size_helpers(void) {
     TEST_ASSERT_EQUAL_INT(43008, ftl_first_subpage_of_block(&device, 42));
 
 
-    TEST_ASSERT_EQUAL_INT(8192, ftl_subpages_in_partition(&index_partition));
-    TEST_ASSERT_EQUAL_INT(8192, ftl_subpages_in_partition(&data_partition));
+    TEST_ASSERT_EQUAL_INT(4096, ftl_subpages_in_partition(&index_partition));
+    TEST_ASSERT_EQUAL_INT(27648, ftl_subpages_in_partition(&data_partition));
 #endif
 
 #ifdef BOARD_NATIVE
@@ -551,16 +551,16 @@ static void test_metadata(void) {
 
     int ret;
 
-    // ret = ftl_format(&index_partition);
-    // TEST_ASSERT_EQUAL_INT(0, ret);
+    ret = ftl_format(&index_partition);
+    TEST_ASSERT_EQUAL_INT(0, ret);
 
     ftl_metadata_header_s metadata_header;
     char metadata_buffer[32];
     char test_metadata1[] = "flubbeldywubbeldy";
     char test_metadata2[] = "schwurbel";
 
-    ret = ftl_load_latest_metadata(&device, metadata_buffer, &metadata_header, true);
-    TEST_ASSERT_EQUAL_INT(0, ret);
+    // ret = ftl_load_latest_metadata(&device, metadata_buffer, &metadata_header, true);
+    // TEST_ASSERT_EQUAL_INT(0, ret);
 
     ret = ftl_write_metadata(&device, test_metadata1, strlen(test_metadata1));
     TEST_ASSERT_EQUAL_INT(0, ret);
