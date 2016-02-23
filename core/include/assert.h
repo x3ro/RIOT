@@ -25,6 +25,9 @@
 extern "C" {
 #endif
 
+
+#define assert__(x) for ( ; !(x) ; assert(x) ) { printf("Assertion failed on line %d\n", __LINE__); }
+
 /**
  * @brief   the string that is passed to panic in case of a failing assertion
  */
@@ -43,7 +46,7 @@ extern const char assert_crash_message[];
  * programs.
  */
 
-#ifdef NDEBUG
+#ifndef NDEBUG
 #define assert(ignore)((void) 0)
 #else
 #define assert(cond) ((cond) ? (void)0 : core_panic(PANIC_ASSERT_FAIL, assert_crash_message))

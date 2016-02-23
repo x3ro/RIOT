@@ -32,6 +32,12 @@
 #include "storage/osl.h"
 
 
+#define HEXDUMP_BUFFER(buffer, size)    for(int i=0; i<size; i++) { \
+                                    printf("%02x ", ((unsigned char*) buffer)[i]); \
+                                    if((i+1)%32 == 0) { printf("\n"); } \
+                                } \
+                                printf("\nbuffer ^^^^^\n");
+
 /* Functions for a flash_sim based FTL device */
 
 #ifdef BOARD_NATIVE
@@ -114,15 +120,15 @@ ftl_partition_s *partitions[] = {
 #define FTL_TOTAL_PAGES 16384 // Using 8 MB for now
 
 int write(const unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
-    assert(offset == 0);
-    assert(length == FTL_SUBPAGE_SIZE);
+    assert__(offset == 0);
+    assert__(length == FTL_SUBPAGE_SIZE);
     int ret = MCI_write(buffer, page, 1);
     return ret;
 }
 
 int read(unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
-    assert(offset == 0);
-    assert(length == FTL_SUBPAGE_SIZE);
+    assert__(offset == 0);
+    assert__(length == FTL_SUBPAGE_SIZE);
     int ret = MCI_read(buffer, page, 1);
     return ret;
 }
@@ -140,7 +146,7 @@ unsigned char subpage_buffer[512];
 unsigned char ecc_buffer[6];
 
 ftl_device_s device = {
-    .total_pages = 16384,
+    .total_pages = 32768,
     .page_size = 512,
     .subpage_size = 512,
     .pages_per_block = 1024,
@@ -182,33 +188,87 @@ ftl_partition_s *partitions[] = {
 
 osl_s osl;
 
-int main(void)
-{
-    device.partitions = partitions;
-
+#ifdef BOARD_NATIVE
+void init(void) {
     fs.page_size = device.page_size;
     fs.block_size = device.pages_per_block * device.page_size;
     fs.storage_size = device.total_pages * device.page_size;
     int ret = flash_sim_init(&fs);
-    assert(ret == 0);
+    assert__(ret == 0);
+}
+#endif
+
+#ifdef BOARD_MSBA2
+void init(void) {
+    printf("%s\n", __FUNCTION__);
+
+    DSTATUS status = MCI_initialize();
+    if(status == STA_NOINIT) {
+        printf("Could not initialize MCI interface :(\n");
+    } else if(status == STA_NODISK) {
+        printf("NO SDCard detected. Aborting\n");
+    } else if(status == STA_PROTECT) {
+        printf("SDCard is in read-only mode\n");
+    }
+
+    assert__(status == 0);
+
+    unsigned long sector_count = 0;
+    MCI_ioctl(GET_SECTOR_COUNT, &sector_count);
+    printf("sector_count: %lu\n", sector_count);
+
+    unsigned short sector_size = 0;
+    MCI_ioctl(GET_SECTOR_SIZE, &sector_size);
+    printf("sector_size: %hu\n", sector_size);
+
+    unsigned long block_size = 0;
+    MCI_ioctl(GET_BLOCK_SIZE, &block_size);
+    printf("block_size: %lu\n", block_size);
+}
+#endif
+
+int main(void)
+{
+    device.partitions = partitions;
+    int ret;
+    int ch;
+
+    init();
+
+
 
     ret = ftl_init(&device);
-    assert(ret == 0);
+    assert__(ret == 0);
+    printf("Initialized FTL\n");
 
-    // ret = ftl_format(&index_partition);
-    // assert(ret == 0);
-    // ret = ftl_format(&data_partition);
-    // assert(ret == 0);
+    ret = ftl_read_raw(&index_partition, device._subpage_buffer, 0);
+    assert__(ret == 0);
+    //HEXDUMP_BUFFER(device._subpage_buffer, device.subpage_size);
+
+    printf("Would you like to format the partitions? (y/n)\n");
+    ch = getchar();
+    printf("\n");
+    if(ch == 121) {
+        printf("Formatting\n");
+        ret = ftl_format(&index_partition);
+        assert__(ret == 0);
+        ret = ftl_format(&data_partition);
+        assert__(ret == 0);
+        printf("Formatted partitions\n");
+    }
+    do { ch = getchar(); } while(ch != 10);
 
     ret = osl_init(&osl, &device, &data_partition);
-    assert(ret == 0);
+    assert__(ret == 0);
+    printf("Initialized OSL\n");
 
     osl_od stream;
     ret = osl_stream(&osl, &stream, "test:stream", sizeof(int));
-    assert(ret == 0);
+    assert__(ret == 0);
+    printf("Created test stream\n");
 
     osl_object_s *obj = osl_get_object(&stream);
-    printf("size of stream %d", obj->num_objects);
+    printf("size of stream %d", (int) obj->num_objects);
     printf("\n\n");
 
     printf("Previous content:\n\n");
@@ -216,7 +276,7 @@ int main(void)
     osl_iterator(&stream, &iter);
     char c;
     while(OSL_STREAM_NEXT(c, iter)) {
-        printf("%c", c);
+        printf("===============> %c (%d)\n", c, c);
     }
 
     printf("\n\nAdd new content: \n\n");
@@ -225,7 +285,7 @@ int main(void)
     while(1) {
         int ch = getchar();
         printf("(%d)\n", ch);
-        if(ch == -1) {
+        if(ch == -1 || ch == 33) {
             break;
         }
         ret = osl_stream_append(&stream, &ch);
@@ -234,8 +294,20 @@ int main(void)
         }
     }
 
-    printf("size of stream %d\n", obj->num_objects);
-    osl_create_checkpoint(&osl);
+    printf("size of stream %d\n", (int) obj->num_objects);
+    ret = osl_create_checkpoint(&osl);
+    assert__(ret == 0);
+
+    ret = ftl_read_raw(&index_partition, device._subpage_buffer, 0);
+    assert__(ret == 0);
+    HEXDUMP_BUFFER(device._subpage_buffer, device.subpage_size);
+
+    osl_iterator(&stream, &iter);
+    while(OSL_STREAM_NEXT(c, iter)) {
+        printf("%c", c);
+    }
+
+    printf("\n\nthe end\n");
 
     lpm_set(LPM_POWERDOWN);
     return 0;

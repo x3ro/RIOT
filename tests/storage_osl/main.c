@@ -192,6 +192,8 @@ static void test_init_osl_too_early(void) {
 #ifdef BOARD_MSBA2
 
 static void test_init_ftl(void) {
+    printf("%s\n", __FUNCTION__);
+
     DSTATUS status = MCI_initialize();
     if(status == STA_NOINIT) {
         printf("Could not initialize MCI interface :(\n");
@@ -240,6 +242,7 @@ static void test_init_ftl(void) {
 #ifdef BOARD_NATIVE
 
 static void test_init_ftl(void) {
+    printf("%s\n", __FUNCTION__);
     // device.write = write;
     // device.read = read;
     // device.erase = erase;
@@ -271,6 +274,7 @@ static void test_init_ftl(void) {
 #endif
 
 static void test_init_osl(void) {
+    printf("%s\n", __FUNCTION__);
     int ret = osl_init(&osl, &device, &data_partition);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
@@ -289,6 +293,8 @@ static void test_init_osl(void) {
 }
 
 static void test_stream(void) {
+    printf("%s\n", __FUNCTION__);
+
     osl_od stream;
     int ret = osl_stream(&osl, &stream, "test:stream", sizeof(uint64_t));
     TEST_ASSERT(ret >= 0);
@@ -343,6 +349,8 @@ static void test_stream(void) {
 // TODO: Test osl_stream_new errors, filename too long and too many open objects
 
 static void test_stream_beyond_buffer(void) {
+    printf("%s\n", __FUNCTION__);
+
     osl_od stream;
     int ret = osl_stream(&osl, &stream, "test:large_stream", sizeof(uint64_t));
     TEST_ASSERT(ret >= 0);
@@ -379,7 +387,8 @@ static void test_stream_beyond_buffer(void) {
 }
 
 static void test_metadata_saving(void) {
-    return;
+    printf("%s\n", __FUNCTION__);
+    TEST_ASSERT_EQUAL_INT(0, 1);
 }
 
 Test *testsrunner(void) {

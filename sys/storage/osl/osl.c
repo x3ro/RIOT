@@ -61,7 +61,7 @@ int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
         return -EIO;
     }
 
-    MYDEBUG("Buffering record w/ predecessor offset %d and subpage %d to offset %d\n",
+    MYDEBUG("Buffering record w/ predecessor offset %d and subpage %lu to offset %d\n",
         record->predecessor.offset,
         record->predecessor.subpage,
         osl->subpage_buffer_cursor);
@@ -100,7 +100,7 @@ int _osl_buffer_read_datum(unsigned char *buffer, osl_record_s* record, void* da
 }
 
 int _osl_buffer_flush(osl_s* osl) {
-    MYDEBUG("Flushing buffer to page %d\n", osl->data_partition->next_subpage);
+    MYDEBUG("Flushing buffer to page %lu\n", osl->data_partition->next_subpage);
 
     int ret = ftl_write_ecc(osl->data_partition,
                             osl->subpage_buffer,
@@ -122,7 +122,7 @@ int _osl_buffer_flush(osl_s* osl) {
 
 
 int _osl_read_page(osl_s* osl, uint32_t subpage) {
-    MYDEBUG("Reading subpage %d\n", subpage);
+    MYDEBUG("Reading subpage %lu\n", subpage);
     subpageheader_s header;
     int ret = ftl_read(osl->data_partition, osl->read_buffer, &header, subpage);
     if(ret != 0) {
@@ -135,7 +135,7 @@ int _osl_read_page(osl_s* osl, uint32_t subpage) {
 
 int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s* rh) {
 
-    MYDEBUG("subpage %d, offset %d, next_data_subpage %d, read_buffer_subpage %d\n",
+    MYDEBUG("subpage %lu, offset %d, next_data_subpage %lu, read_buffer_subpage %lu\n",
         record->subpage,
         record->offset,
         osl->data_partition->next_subpage,
@@ -282,7 +282,7 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
     if(cache != NULL) {
         record = cache->record;
         steps_back = cache->index - index;
-        MYDEBUG("Found record offset %d subpage %d index %d\n", record.offset, record.subpage, cache->index);
+        MYDEBUG("Found record offset %d subpage %lu index %lu\n", record.offset, record.subpage, cache->index);
     } else{
         record = object->tail;
         // Number of objects written after target index
@@ -310,16 +310,16 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
         MYDEBUG("steps back %d\n", steps_back);
         steps_back -= rh.length / object->object_size;
 
-        if(record.subpage != rh.predecessor.subpage) {
-            // Continue here, this doesnt work yet
-            // assert(false);
-            //od->osl->record_cache[0]
-            MYDEBUG("caching index %d\n", steps_back);
-            // TODO: more than one cache depth thingy
-            osl_record_cache_s* c = &od->osl->record_cache[0];
-            c->index = index + steps_back;
-            c->record = rh.predecessor;
-        }
+        // if(record.subpage != rh.predecessor.subpage) {
+        //     // Continue here, this doesnt work yet
+        //     // assert(false);
+        //     //od->osl->record_cache[0]
+        //     MYDEBUG("caching index %d\n", steps_back);
+        //     // TODO: more than one cache depth thingy
+        //     osl_record_cache_s* c = &od->osl->record_cache[0];
+        //     c->index = index + steps_back;
+        //     c->record = rh.predecessor;
+        // }
 
         record = rh.predecessor;
     }
@@ -382,6 +382,7 @@ int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s *data_partition) 
 
     if(ret < 0) {
         osl->open_objects = 0;
+        ftl_write_metadata(device, NULL, 0);
     } else {
         osl->open_objects = header.foreign_metadata_length / sizeof(osl_object_s);
     }

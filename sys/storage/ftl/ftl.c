@@ -379,7 +379,7 @@ int ftl_write_metadata(ftl_device_s *device, const void *metadata, uint16_t leng
         .partition_count = device->partition_count
     };
 
-    printf("version: %x length %x count %x\n", header.version, header.foreign_metadata_length, header.partition_count);
+    //printf("version: %x length %x count %x\n", header.version, header.foreign_metadata_length, header.partition_count);
 
     int offset = sizeof(subpageheader_s) + device->ecc_size;
     memset(device->_subpage_buffer, 0, device->subpage_size);
@@ -416,7 +416,7 @@ int ftl_load_metadata_page_with_version(ftl_device_s *device, uint32_t version, 
     for(uint32_t i=0; i<ftl_subpages_in_partition(metadata_partition); i++) {
         ret = ftl_read(metadata_partition, NULL, &subpage_header, i);
 
-        printf("reading page %d", i);
+        //printf("reading page %d", i);
         //HEXDUMP_BUFFER(device->_subpage_buffer, device->subpage_size);
 
         // first page was not initialized, assuming empty partition
@@ -424,11 +424,11 @@ int ftl_load_metadata_page_with_version(ftl_device_s *device, uint32_t version, 
             return -1;
         }
 
-        printf("xxx subpage %d error %d\n", i, ret);
+        //printf("xxx subpage %d error %d\n", i, ret);
         if(ret != 0) {
             // In case of error reading, return the latest valid version
             ret = ftl_read(metadata_partition, NULL, &subpage_header, i-1);
-            printf("subpage %d error %d\n", i-1, ret);
+            //printf("subpage %d error %d\n", i-1, ret);
             assert(ret == 0);
             *source_page = i-1;
             return 2;
@@ -451,7 +451,7 @@ int32_t ftl_load_latest_metadata(ftl_device_s *device, void *buffer, ftl_metadat
 int32_t ftl_load_metadata(ftl_device_s *device, void *buffer, ftl_metadata_header_s *header, uint32_t version, bool set_ftl_state) {
     uint32_t source_subpage;
     int ret = ftl_load_metadata_page_with_version(device, version, &source_subpage);
-    printf("ret %d version %d\n", ret, header->version);
+    //printf("ret %d version %d\n", ret, header->version);
     if(ret < 0) {
         return ret;
     }
@@ -463,7 +463,7 @@ int32_t ftl_load_metadata(ftl_device_s *device, void *buffer, ftl_metadata_heade
     offset += sizeof(ftl_metadata_header_s);
 
     if(set_ftl_state) {
-        printf("loading %d partitions\n", header->partition_count);
+        //printf("loading %d partitions\n", header->partition_count);
         for(unsigned int i=0; i<header->partition_count; i++) {
             memcpy(device->partitions[i], device->_subpage_buffer + offset, sizeof(ftl_partition_s));
             device->partitions[i]->device = device;
