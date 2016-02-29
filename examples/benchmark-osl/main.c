@@ -24,6 +24,16 @@
 #include <assert.h>
 #include <diskio.h>
 #include <math.h>
+#include <lpm.h>
+
+#define myassert(condition) do { \
+        if(!(condition)) { \
+            printf("Assertion failed %s in file %s line %d\n", #condition, __FILE__, __LINE__); \
+            xtimer_sleep(2); \
+            lpm_set(LPM_POWERDOWN); \
+        } \
+    } while(0);
+
 
 #ifdef BOARD_NATIVE
 #include "storage/flash_sim.h"
@@ -33,21 +43,68 @@
 #include "storage/osl.h"
 #include "xtimer.h"
 
+#define ITERATIONS 2000
+#define REPS 10
 
-#define FTL_PAGE_SIZE 512
+unsigned char subpage_buffer[512];
+unsigned char ecc_buffer[6];
+
 #define FTL_SUBPAGE_SIZE 512
-#define FTL_PAGES_PER_BLOCK 1024
-#define FTL_TOTAL_PAGES 131072 // Using 8 MB for now
+
+int write(const unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length);
+int read(unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length);
+int erase(uint32_t block);
+
+ftl_device_s device = {
+    .total_pages = 102400,
+    .page_size = 512,
+    .subpage_size = 512,
+    .pages_per_block = 1024,
+    .ecc_size = 6,
+    .partition_count = 2,
+
+    ._write = write,
+    ._read = read,
+    ._erase = erase,
+    ._bulk_erase = NULL,
+
+    ._subpage_buffer = subpage_buffer,
+    ._ecc_buffer = ecc_buffer
+};
 
 
-ftl_device_s device;
+ftl_partition_s index_partition = {
+    .device = &device,
+    .base_offset = 0,
+    .size = 30,
+    .next_subpage = 0,
+    .erased_until = 0,
+    .free_until = 0
+};
+
+
+ftl_partition_s data_partition = {
+    .device = &device,
+    .base_offset = 30,
+    .size = 69,
+    .next_subpage = 0,
+    .erased_until = 0,
+    .free_until = 0
+};
+
+
+
+ftl_partition_s *partitions[] = {
+    &index_partition,
+    &data_partition
+};
+
+
+
 osl_s osl;
-unsigned char page_buffer[FTL_SUBPAGE_SIZE];
+
 
 char sprint_buffer[16];
-
-// char page_buffer[FTL_SUBPAGE_SIZE];
-// char expect_buffer[FTL_SUBPAGE_SIZE];
 
 void sprint_double(char *buffer, double x, int precision) {
     long integral_part = (long) x;
@@ -61,36 +118,28 @@ void sprint_double(char *buffer, double x, int precision) {
 
 flash_sim fs;
 
-int write(const char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
-    return flash_sim_ftl_write(&fs, buffer, page, offset, length);
+int write(const unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
+    return flash_sim_ftl_write(&fs, (char*) buffer, page, offset, length);
 }
 
-int read(char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
-    return flash_sim_ftl_read(&fs, buffer, page, offset, length);
+int read(unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
+    return flash_sim_ftl_read(&fs, (char*) buffer, page, offset, length);
 }
 
-int erase(blockptr_t block) {
+int erase(uint32_t block) {
     return flash_sim_ftl_erase(&fs, block);
 }
 
 void init_ftl(void) {
-    device.write = write;
-    device.read = read;
-    device.erase = erase;
-    device.page_size = FTL_PAGE_SIZE;
-    device.subpage_size = FTL_SUBPAGE_SIZE;
-    device.pages_per_block = FTL_PAGES_PER_BLOCK;
-    device.total_pages = FTL_TOTAL_PAGES;
-
     fs.page_size = device.page_size;
     fs.block_size = device.pages_per_block * device.page_size;
     fs.storage_size = device.total_pages * device.page_size;
 
     int ret = flash_sim_init(&fs);
-    assert(ret == 0);
+    myassert(ret == 0);
 
     ret = ftl_init(&device);
-    assert(ret == 0);
+    myassert(ret == 0);
 }
 
 #endif /* Board Native */
@@ -99,28 +148,28 @@ void init_ftl(void) {
 
 #ifdef BOARD_MSBA2
 
-int write(const char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
-    assert(offset == 0);
-    assert(length == FTL_SUBPAGE_SIZE);
+int write(const unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
+    myassert(offset == 0);
+    myassert(length == FTL_SUBPAGE_SIZE);
     int ret = MCI_write((unsigned char*) buffer, page, 1);
     return ret;
 }
 
-int read(char *buffer, pageptr_t page, uint32_t offset, uint16_t length) {
-    assert(offset == 0);
-    assert(length == FTL_SUBPAGE_SIZE);
+int read(unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length) {
+    myassert(offset == 0);
+    myassert(length == FTL_SUBPAGE_SIZE);
     int ret = MCI_read((unsigned char*) buffer, page, 1);
     return ret;
 }
 
-int erase(blockptr_t block) {
+int erase(uint32_t block) {
     // unsigned long block_to_erase = block + 0;
     // int ret = MCI_ioctl(CTRL_ERASE_SECTOR, &block_to_erase);
     // return ret;
 
     unsigned int buff[2];
-    buff[0] = block * FTL_PAGES_PER_BLOCK;
-    buff[1] = (block + 1) * FTL_PAGES_PER_BLOCK - 1;
+    buff[0] = block * device.pages_per_block;
+    buff[1] = (block + 1) * device.pages_per_block - 1;
     int ret = MCI_ioctl(CTRL_ERASE_SECTOR, &buff);
     return ret;
 }
@@ -135,7 +184,7 @@ void init_ftl(void) {
         printf("SDCard is in read-only mode\n");
     }
 
-    assert(status == 0);
+    myassert(status == 0);
 
     unsigned long sector_count = 0;
     MCI_ioctl(GET_SECTOR_COUNT, &sector_count);
@@ -149,30 +198,20 @@ void init_ftl(void) {
     MCI_ioctl(GET_BLOCK_SIZE, &block_size);
     printf("block_size: %lu\n", block_size);
 
-    device.write = write;
-    device.read = read;
-    device.erase = erase;
-    device.page_size = FTL_PAGE_SIZE;
-    device.subpage_size = FTL_SUBPAGE_SIZE;
-    device.pages_per_block = FTL_PAGES_PER_BLOCK;
-    device.total_pages = FTL_TOTAL_PAGES;
-
     int ret = ftl_init(&device);
-    assert(ret == 0);
+    myassert(ret == 0);
 }
 
 #endif /* Board MSBA2 */
 
 void init_osl(void) {
-    int ret = osl_init(&osl, &device);
-    assert(ret == 0);
+    device.partitions = partitions;
+    int ret = osl_init(&osl, &device, &data_partition);
+    myassert(ret == 0);
 }
 
 void benchmark_ftl_write(void) {
-    memset(page_buffer, 0x1F, FTL_SUBPAGE_SIZE);
-
-    #define ITERATIONS 2000
-    #define REPS 10
+    memset(subpage_buffer, 0x1F, FTL_SUBPAGE_SIZE);
 
     int ret = 0;
     int page = 0;
@@ -183,8 +222,8 @@ void benchmark_ftl_write(void) {
 
     // warmup
     for(int p=0; p<ITERATIONS; p++) {
-        ret = ftl_write_raw(&device.data_partition, (char*)page_buffer, page);
-        assert(ret == 0);
+        ret = ftl_write_raw(&index_partition, subpage_buffer, page);
+        myassert(ret == 0);
         page++;
     }
 
@@ -193,8 +232,8 @@ void benchmark_ftl_write(void) {
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         for(int p=0; p<ITERATIONS; p++) {
-            ret = ftl_write_raw(&device.data_partition, (char*)page_buffer, page);
-            assert(ret == 0);
+            ret = ftl_write_raw(&index_partition, subpage_buffer, page);
+            myassert(ret == 0);
             page++;
         }
         xtimer_now_timex(&now);
@@ -206,12 +245,12 @@ void benchmark_ftl_write(void) {
 
 
     printf("write_no_ecc = [\n");
-    subpageoffset_t data_length = ftl_data_per_subpage(&device, false);
+    uint16_t data_length = ftl_data_per_subpage(&device, false);
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         for(int p=0; p<ITERATIONS; p++) {
-            ret = ftl_write(&device.data_partition, (char*)page_buffer, page, data_length);
-            assert(ret == 0);
+            ret = ftl_write(&data_partition, subpage_buffer, data_length);
+            myassert(ret == 0);
             page++;
         }
         xtimer_now_timex(&now);
@@ -226,8 +265,8 @@ void benchmark_ftl_write(void) {
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         for(int p=0; p<ITERATIONS; p++) {
-            ret = ftl_write_ecc(&device.data_partition, (char*)page_buffer, page, data_length);
-            assert(ret == 0);
+            ret = ftl_write_ecc(&data_partition, subpage_buffer, data_length);
+            myassert(ret == 0);
             page++;
         }
         xtimer_now_timex(&now);
@@ -240,8 +279,7 @@ void benchmark_ftl_write(void) {
 
 void benchmark_ftl_read(void) {
 
-    #define ITERATIONS 2000
-    #define REPS 10
+
 
     int ret = 0;
     int page = 0;
@@ -252,8 +290,8 @@ void benchmark_ftl_read(void) {
 
     // warmup
     for(int p=0; p<ITERATIONS; p++) {
-        ret = ftl_read_raw(&device.data_partition, (char*)page_buffer, page);
-        assert(ret == 0);
+        ret = ftl_read_raw(&data_partition, subpage_buffer, page);
+        myassert(ret == 0);
         page++;
     }
 
@@ -263,8 +301,8 @@ void benchmark_ftl_read(void) {
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         for(int p=0; p<ITERATIONS; p++) {
-            ret = ftl_read_raw(&device.data_partition, (char*)page_buffer, page);
-            assert(ret == 0);
+            ret = ftl_read_raw(&data_partition, subpage_buffer, page);
+            myassert(ret == 0);
             page++;
         }
         xtimer_now_timex(&now);
@@ -279,8 +317,8 @@ void benchmark_ftl_read(void) {
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         for(int p=0; p<ITERATIONS; p++) {
-            ret = ftl_read(&device.data_partition, (char*)page_buffer, &header, page);
-            assert(ret == 0);
+            ret = ftl_read(&data_partition, subpage_buffer, &header, page);
+            myassert(ret == 0);
             page++;
         }
         xtimer_now_timex(&now);
@@ -294,10 +332,83 @@ void benchmark_ftl_read(void) {
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         for(int p=0; p<ITERATIONS; p++) {
-            ret = ftl_read(&device.data_partition, (char*)page_buffer, &header, page);
-            assert(ret == 0);
+            ret = ftl_read(&data_partition, subpage_buffer, &header, page);
+            myassert(ret == 0);
             page++;
         }
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+    printf("]\n");
+}
+
+void benchmark_osl_write(void) {
+    int ret = 0;
+
+    timex_t then;
+    timex_t now;
+    timex_t elapsed;
+
+    osl_od od;
+    ret = osl_stream(&osl, &od, "bench:stream", sizeof(uint32_t));
+    myassert(ret == 0);
+
+    printf("osl_write = [\n");
+    for(int i=0; i<REPS; i++) {
+        xtimer_now_timex(&then);
+        for(int p=0; p<ITERATIONS; p++) {
+            ret = osl_stream_append(&od, &p);
+            myassert(ret == 0);
+        }
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+    printf("]\n");
+}
+
+
+void benchmark_osl_read(void) {
+    int ret = 0;
+
+    timex_t then;
+    timex_t now;
+    timex_t elapsed;
+
+    osl_od od;
+    ret = osl_stream(&osl, &od, "bench:stream", sizeof(uint64_t));
+    myassert(ret == 0);
+
+    osl_iter iter;
+    osl_iterator(&od, &iter);
+    uint64_t x;
+    uint64_t sum;
+
+    // create some elements
+    for(int p=0; p<1000; p++) {
+        ret = osl_stream_append(&od, &p);
+        myassert(ret == 0);
+    }
+
+    printf("osl_iterate = [\n");
+    for(int i=0; i<REPS; i++) {
+        xtimer_now_timex(&then);
+        osl_iterator(&od, &iter);
+        //for(int p=0; p<ITERATIONS; p++) {
+            while(OSL_STREAM_NEXT(x, iter)) {
+                sum += x;
+            }
+
+            // ret = osl_stream_get(&od, &x, p);
+            // printf("ret=%d\n", ret);
+            // myassert(ret == 0);
+            //printf("x %d\n", x);
+            //sum+=x;
+
+        //  }
         xtimer_now_timex(&now);
         elapsed = timex_sub(now, then);
         timex_to_str(elapsed, sprint_buffer);
@@ -309,15 +420,21 @@ void benchmark_ftl_read(void) {
 int main(void)
 {
     init_ftl();
-    int ret = ftl_format(&device.index_partition);
-    assert(ret == 0);
+    assert(false);
+    int ret = ftl_format(&index_partition);
+    myassert(ret == 0);
+    ret = ftl_format(&data_partition);
+    myassert(ret == 0);
     printf("format complete\n");
 
-    //init_osl();
-
     //benchmark_ftl_write();
-    benchmark_ftl_read();
-
+    //benchmark_ftl_read();
+    //
+    //
+    // OSL
+    init_osl();
+    //benchmark_osl_write();
+    benchmark_osl_read();
 
 
 
