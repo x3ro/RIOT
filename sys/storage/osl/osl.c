@@ -310,16 +310,16 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRec
         MYDEBUG("steps back %d\n", steps_back);
         steps_back -= rh.length / object->object_size;
 
-        // if(record.subpage != rh.predecessor.subpage) {
-        //     // Continue here, this doesnt work yet
-        //     // assert(false);
-        //     //od->osl->record_cache[0]
-        //     MYDEBUG("caching index %d\n", steps_back);
-        //     // TODO: more than one cache depth thingy
-        //     osl_record_cache_s* c = &od->osl->record_cache[0];
-        //     c->index = index + steps_back;
-        //     c->record = rh.predecessor;
-        // }
+        if(record.subpage != rh.predecessor.subpage) {
+            // Continue here, this doesnt work yet
+            // assert(false);
+            //od->osl->record_cache[0]
+            MYDEBUG("caching index %d\n", steps_back);
+            // TODO: more than one cache depth thingy
+            osl_record_cache_s* c = &od->osl->record_cache[0];
+            c->index = index + steps_back;
+            c->record = rh.predecessor;
+        }
 
         record = rh.predecessor;
     }
