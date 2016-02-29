@@ -61,7 +61,7 @@ int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
         return -EIO;
     }
 
-    MYDEBUG("Buffering record w/ predecessor offset %" PRIu32 " and subpage %" PRIu32 " to offset %" PRIu32 "\n",
+    MYDEBUG("Buffering record w/ predecessor offset %" PRIi16 " and subpage %" PRIu32 " to offset %" PRIi16 "\n",
         record->predecessor.offset,
         record->predecessor.subpage,
         osl->subpage_buffer_cursor);
@@ -135,7 +135,7 @@ int _osl_read_page(osl_s* osl, uint32_t subpage) {
 
 int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s* rh) {
 
-    MYDEBUG("subpage %" PRIu32 ", offset %" PRIu32 ", next_data_subpage %" PRIu32 ", read_buffer_subpage %" PRIu32 "\n",
+    MYDEBUG("subpage %" PRIu32 ", offset %" PRIi16 ", next_data_subpage %" PRIu32 ", read_buffer_subpage %" PRIu32 "\n",
         record->subpage,
         record->offset,
         osl->data_partition->next_subpage,
@@ -282,7 +282,7 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRec
     if(cache != NULL) {
         record = cache->record;
         steps_back = cache->index - index;
-        MYDEBUG("Found record offset %" PRIu32 " subpage %" PRIu32 " index %" PRIu32 "\n", record.offset, record.subpage, cache->index);
+        MYDEBUG("Found record offset %" PRIi16 " subpage %" PRIu32 " index %" PRIu32 "\n", record.offset, record.subpage, cache->index);
     } else{
         record = object->tail;
         // Number of objects written after target index
