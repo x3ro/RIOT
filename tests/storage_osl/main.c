@@ -312,6 +312,8 @@ static void test_stream(void) {
     TEST_ASSERT_EQUAL_INT(record_size, stream.osl->subpage_buffer_cursor);
     TEST_ASSERT_EQUAL_INT(0, object->tail.offset);
     TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
+    TEST_ASSERT_EQUAL_INT(0, object->head.offset);
+    TEST_ASSERT_EQUAL_INT(0, object->head.subpage);
     TEST_ASSERT_EQUAL_INT(1, object->num_objects);
 
     x = 2;
@@ -344,6 +346,30 @@ static void test_stream(void) {
 
     ret = osl_stream_get(&stream, &x, 3);
     TEST_ASSERT_EQUAL_INT(-EFAULT, ret);
+
+    osl_od stream2;
+    ret = osl_stream(&osl, &stream2, "test:stream2", sizeof(uint8_t));
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    object = osl_get_object(&stream2);
+
+    ret = osl_stream_append(&stream2, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT(object->tail.offset != 0);
+    TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
+    TEST_ASSERT(object->head.offset != 0);
+    TEST_ASSERT_EQUAL_INT(0, object->head.subpage);
+    TEST_ASSERT(object->head.offset == object->tail.offset);
+    TEST_ASSERT_EQUAL_INT(1, object->num_objects);
+
+    ret = osl_stream_append(&stream2, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT(object->tail.offset != 0);
+    TEST_ASSERT_EQUAL_INT(0, object->tail.subpage);
+    TEST_ASSERT(object->head.offset != 0);
+    TEST_ASSERT_EQUAL_INT(0, object->head.subpage);
+    TEST_ASSERT(object->head.offset != object->tail.offset);
+    TEST_ASSERT_EQUAL_INT(2, object->num_objects);
 }
 
 // TODO: Test osl_stream_new errors, filename too long and too many open objects
@@ -386,6 +412,64 @@ static void test_stream_beyond_buffer(void) {
     }
 }
 
+static void test_queue(void) {
+    int32_t x = 0;
+    osl_od queue;
+    int ret = osl_queue(&osl, &queue, "test:queue", sizeof(int32_t));
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    x = 42;
+    ret = osl_queue_add(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    x = 100;
+    ret = osl_queue_add(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    x = -42;
+    ret = osl_queue_add(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    x = 0;
+    ret = osl_queue_peek(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(42, x);
+
+    x = 0;
+    ret = osl_queue_remove(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(42, x);
+
+    x = 0;
+    ret = osl_queue_peek(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(100, x);
+
+    x = 0;
+    ret = osl_queue_remove(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(100, x);
+
+    x = 0;
+    ret = osl_queue_peek(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(-42, x);
+
+    x = 0;
+    ret = osl_queue_remove(&queue, &x);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_INT(-42, x);
+
+    x = 123;
+    ret = osl_queue_peek(&queue, &x);
+    TEST_ASSERT(ret != 0);
+    TEST_ASSERT_EQUAL_INT(123, x);
+
+    ret = osl_queue_remove(&queue, &x);
+    TEST_ASSERT(ret != 0);
+    TEST_ASSERT_EQUAL_INT(123, x);
+}
+
 static void test_metadata_saving(void) {
     printf("%s\n", __FUNCTION__);
     TEST_ASSERT_EQUAL_INT(0, 1);
@@ -399,6 +483,7 @@ Test *testsrunner(void) {
         new_TestFixture(test_stream),
         new_TestFixture(test_stream_beyond_buffer),
         new_TestFixture(test_metadata_saving),
+        new_TestFixture(test_queue),
     };
 
     EMB_UNIT_TESTCALLER(tests, NULL, NULL, fixtures);

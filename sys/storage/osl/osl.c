@@ -61,12 +61,12 @@ int _osl_buffer_write(osl_s* osl, osl_record_header_s* record, void* item) {
         return -EIO;
     }
 
-    MYDEBUG("Buffering record w/ predecessor offset %d and subpage %lu to offset %d\n",
+    MYDEBUG("Buffering record w/ predecessor offset %" PRIu32 " and subpage %" PRIu32 " to offset %" PRIu32 "\n",
         record->predecessor.offset,
         record->predecessor.subpage,
         osl->subpage_buffer_cursor);
 
-    MYDEBUG("Datum: %llu\n", *(long long unsigned int*) item);
+    MYDEBUG("Datum: %" PRIu64 "\n", *(long long unsigned int*) item);
 
     memcpy( osl->subpage_buffer + osl->subpage_buffer_cursor,
             record,
@@ -100,7 +100,7 @@ int _osl_buffer_read_datum(unsigned char *buffer, osl_record_s* record, void* da
 }
 
 int _osl_buffer_flush(osl_s* osl) {
-    MYDEBUG("Flushing buffer to page %lu\n", osl->data_partition->next_subpage);
+    MYDEBUG("Flushing buffer to page %" PRIu32 "\n", osl->data_partition->next_subpage);
 
     int ret = ftl_write_ecc(osl->data_partition,
                             osl->subpage_buffer,
@@ -122,7 +122,7 @@ int _osl_buffer_flush(osl_s* osl) {
 
 
 int _osl_read_page(osl_s* osl, uint32_t subpage) {
-    MYDEBUG("Reading subpage %lu\n", subpage);
+    MYDEBUG("Reading subpage %" PRIu32 "\n", subpage);
     subpageheader_s header;
     int ret = ftl_read(osl->data_partition, osl->read_buffer, &header, subpage);
     if(ret != 0) {
@@ -135,7 +135,7 @@ int _osl_read_page(osl_s* osl, uint32_t subpage) {
 
 int _osl_record_header_get(osl_s* osl, osl_record_s* record, osl_record_header_s* rh) {
 
-    MYDEBUG("subpage %lu, offset %d, next_data_subpage %lu, read_buffer_subpage %lu\n",
+    MYDEBUG("subpage %" PRIu32 ", offset %" PRIu32 ", next_data_subpage %" PRIu32 ", read_buffer_subpage %" PRIu32 "\n",
         record->subpage,
         record->offset,
         osl->data_partition->next_subpage,
@@ -263,7 +263,7 @@ osl_record_cache_s* _osl_record_cache_lookup(osl_od* od, unsigned long index) {
     return NULL;
 }
 
-int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
+int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRecord, unsigned long index) {
     osl_object_s* object = osl_get_object(od);
     if(index >= object->num_objects) {
         MYDEBUG("Requested record with index out of bounds.\n");
@@ -282,7 +282,7 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
     if(cache != NULL) {
         record = cache->record;
         steps_back = cache->index - index;
-        MYDEBUG("Found record offset %d subpage %lu index %lu\n", record.offset, record.subpage, cache->index);
+        MYDEBUG("Found record offset %" PRIu32 " subpage %" PRIu32 " index %" PRIu32 "\n", record.offset, record.subpage, cache->index);
     } else{
         record = object->tail;
         // Number of objects written after target index
@@ -329,6 +329,9 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, unsigned long index) {
         assert(false);
     }
 
+    if(resultRecord != NULL) {
+        (*resultRecord) = record;
+    }
     int ret = _osl_record_datum_get(od->osl, &record, object_buffer, 0, object->object_size);
     return ret;
 }
@@ -396,8 +399,8 @@ int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s *data_partition) 
     return 0;
 }
 
-int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size) {
 
+int _new_object(osl_s* osl, osl_od* od, char* name, size_t object_size) {
     if(osl->open_objects >= OSL_MAX_OPEN_OBJECTS) {
         MYDEBUG("Cannot create new stream. Too many open objects.\n");
         return -EMFILE;
@@ -429,13 +432,33 @@ int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size) {
     return 0;
 }
 
+int osl_stream(osl_s* osl, osl_od* od, char* name, size_t object_size) {
+    int ret = _new_object(osl, od, name, object_size);
+    if(ret != 0) {
+        return ret;
+    }
+
+    osl_object_s *obj = osl_get_object(od);
+    obj->type = OSL_STREAM;
+    return 0;
+}
+
 int osl_stream_append(osl_od* od, void* item) {
     osl_object_s* object = osl_get_object(od);
-    return _osl_log_record_append(od, item, object->object_size);
+    int ret = _osl_log_record_append(od, item, object->object_size);
+    if(ret != 0) {
+        return ret;
+    }
+
+    if(object->num_objects == 1) {
+        object->head = object->tail;
+    }
+
+    return ret;
 }
 
 int osl_stream_get(osl_od* od, void* object_buffer, unsigned long index) {
-    return _osl_log_record_get(od, object_buffer, index);
+    return _osl_log_record_get(od, object_buffer, NULL, index);
 }
 
 osl_object_s* osl_get_object(osl_od* od) {
@@ -463,3 +486,66 @@ int osl_create_checkpoint(osl_s* osl) {
 
 // }
 
+
+
+
+int osl_queue(osl_s* osl, osl_od* od, char* name, size_t object_size) {
+    int ret = _new_object(osl, od, name, object_size);
+    if(ret != 0) {
+        return ret;
+    }
+
+    osl_object_s *obj = osl_get_object(od);
+    obj->type = OSL_QUEUE;
+    return 0;
+}
+
+int osl_queue_add(osl_od* od, void* item) {
+    osl_object_s* object = osl_get_object(od);
+    int ret = _osl_log_record_append(od, item, object->object_size);
+    if(ret != 0) {
+        return ret;
+    }
+
+    if(object->num_objects == 1) {
+        object->head = object->tail;
+    }
+
+    return ret;
+}
+
+int osl_queue_peek(osl_od* od, void* item) {
+    osl_object_s* object = osl_get_object(od);
+
+    if(object->num_objects < 1) {
+        return -EFAULT;
+    }
+
+    return _osl_record_datum_get(od->osl, &object->head, item, 0, object->object_size);
+}
+
+int osl_queue_remove(osl_od* od, void* item) {
+    osl_record_s nextHead;
+    osl_object_s* object = osl_get_object(od);
+    int ret;
+
+    if(object->num_objects < 1) {
+        return -EFAULT;
+    }
+
+    if(object->num_objects > 1) {
+        ret = _osl_log_record_get(od, item, &nextHead, 1);
+        if(ret != 0) {
+            return ret;
+        }
+    }
+
+    ret = _osl_record_datum_get(od->osl, &object->head, item, 0, object->object_size);
+    if(ret != 0) {
+        return ret;
+    }
+
+    object->head = nextHead;
+    object->num_objects--;
+    return 0;
+}

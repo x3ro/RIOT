@@ -91,13 +91,23 @@ typedef struct __attribute__((__packed__)) {
 } osl_record_modify_header_s;
 
 
+typedef enum {
+    OSL_STREAM,
+    OSL_QUEUE
+} osl_object_type_t;
+
 
 typedef struct osl_object {
     char name[OSL_MAX_NAME_LENGTH+1];
+    osl_record_s head;
     osl_record_s tail;
+    osl_object_type_t type;
+//    unsigned char state[20]; // State dependant on what type of object, e.g. first element for queue
     uint32_t num_objects;
     uint16_t object_size;
 } osl_object_s;
+
+
 
 
 
@@ -153,6 +163,11 @@ int osl_stream_append(osl_od* cd, void* object);
 int osl_stream_get(osl_od* cd, void* object_buffer, unsigned long index);
 int osl_create_checkpoint(osl_s* osl);
 int osl_iterator(osl_od* od, osl_iter *iter);
+
+int osl_queue(osl_s* osl, osl_od* od, char* name, size_t object_size);
+int osl_queue_add(osl_od* cd, void* item);
+int osl_queue_peek(osl_od* cd, void* item);
+int osl_queue_remove(osl_od* cd, void* item);
 
 /**
  * Helper function to get the referenced object from an object descriptor.
