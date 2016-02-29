@@ -388,27 +388,86 @@ void benchmark_osl_read(void) {
     uint64_t sum;
 
     // create some elements
+    for(int p=0; p<100; p++) {
+        ret = osl_stream_append(&od, &p);
+        myassert(ret == 0);
+    }
+
+    printf("osl_iterate_100 = [\n");
+    for(int i=0; i<2; i++) {
+        xtimer_now_timex(&then);
+        osl_iterator(&od, &iter);
+
+        while(OSL_STREAM_NEXT(x, iter)) {
+            sum += x;
+        }
+
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+    printf("]\n");
+
+
+    for(int p=0; p<400; p++) {
+        ret = osl_stream_append(&od, &p);
+        myassert(ret == 0);
+    }
+
+
+    printf("osl_iterate_500 = [\n");
+    for(int i=0; i<2; i++) {
+        xtimer_now_timex(&then);
+        osl_iterator(&od, &iter);
+
+        while(OSL_STREAM_NEXT(x, iter)) {
+            sum += x;
+        }
+
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+    printf("]\n");
+
+    for(int p=0; p<500; p++) {
+        ret = osl_stream_append(&od, &p);
+        myassert(ret == 0);
+    }
+
+
+    printf("osl_iterate_1000 = [\n");
+    for(int i=0; i<2; i++) {
+        xtimer_now_timex(&then);
+        osl_iterator(&od, &iter);
+
+        while(OSL_STREAM_NEXT(x, iter)) {
+            sum += x;
+        }
+
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+    printf("]\n");
+
     for(int p=0; p<1000; p++) {
         ret = osl_stream_append(&od, &p);
         myassert(ret == 0);
     }
 
-    printf("osl_iterate = [\n");
-    for(int i=0; i<REPS; i++) {
+    printf("osl_iterate_2000 = [\n");
+    for(int i=0; i<2; i++) {
         xtimer_now_timex(&then);
         osl_iterator(&od, &iter);
-        //for(int p=0; p<ITERATIONS; p++) {
-            while(OSL_STREAM_NEXT(x, iter)) {
-                sum += x;
-            }
 
-            // ret = osl_stream_get(&od, &x, p);
-            // printf("ret=%d\n", ret);
-            // myassert(ret == 0);
-            //printf("x %d\n", x);
-            //sum+=x;
+        while(OSL_STREAM_NEXT(x, iter)) {
+            sum += x;
+        }
 
-        //  }
         xtimer_now_timex(&now);
         elapsed = timex_sub(now, then);
         timex_to_str(elapsed, sprint_buffer);

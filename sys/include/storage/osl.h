@@ -31,7 +31,7 @@ extern "C" {
 #define OSL_MAX_OPEN_OBJECTS 8
 #define OSL_MAX_NAME_LENGTH 31
 
-#define OSL_RECORD_CACHE_SIZE 6
+#define OSL_RECORD_CACHE_SIZE 3
 
 #define OSL_INDEX_PARTITION 0
 #define OSL_DATA_PARTITION 1
@@ -132,6 +132,7 @@ typedef struct osl_s {
 
     osl_record_cache_s record_cache[OSL_RECORD_CACHE_SIZE];
     int8_t record_cache_object;
+    uint32_t record_cache_created_for_index;
 
 } osl_s;
 

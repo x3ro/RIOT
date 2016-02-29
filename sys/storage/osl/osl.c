@@ -47,7 +47,19 @@
 //     return -1;
 // }
 
+uint32_t ipow(uint32_t base, uint32_t exp)
+{
+    int result = 1;
+    while (exp)
+    {
+        if (exp & 1)
+            result *= base;
+        exp >>= 1;
+        base *= base;
+    }
 
+    return result;
+}
 
 /* =================
  * Buffer management
@@ -263,16 +275,40 @@ osl_record_cache_s* _osl_record_cache_lookup(osl_od* od, unsigned long index) {
     return NULL;
 }
 
-int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRecord, unsigned long index) {
+bool _osl_should_recreate_cache(osl_od* od, uint32_t target_index) {
+    bool recreate = false;
+    // existing cache is not for current object
+    if(od->osl->record_cache_object != od->index) {
+        _osl_record_cache_reset(od);
+        recreate = true;
+    }
+    // TODO: threshold
+    else if(abs(od->osl->record_cache_created_for_index - target_index) > 100) {
+        recreate = true;
+    }
+
+    od->osl->record_cache_created_for_index = target_index;
+
+    return recreate;
+}
+
+int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRecord, uint32_t index) {
     osl_object_s* object = osl_get_object(od);
     if(index >= object->num_objects) {
         MYDEBUG("Requested record with index out of bounds.\n");
         return -EFAULT;
     }
 
-    if(od->osl->record_cache_object != od->index) {
-        _osl_record_cache_reset(od);
+    bool recreate_cache = _osl_should_recreate_cache(od, index);
+    // if(recreate_cache) {
+    //     printf("recreating cache\n");
+    // }
+    uint8_t cache_slot_to_fill = OSL_RECORD_CACHE_SIZE - 1; // first thing to cache is the upper slot
+    uint8_t cache_x = 2;
+    while(ipow(cache_x+1, OSL_RECORD_CACHE_SIZE) < object->num_objects) {
+        cache_x++;
     }
+    //printf("cache_x = %d\n", cache_x);
 
     osl_record_header_s rh;
     osl_record_cache_s* cache = _osl_record_cache_lookup(od, index);
@@ -282,14 +318,15 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRec
     if(cache != NULL) {
         record = cache->record;
         steps_back = cache->index - index;
-        MYDEBUG("Found record offset %" PRIi16 " subpage %" PRIu32 " index %" PRIu32 "\n", record.offset, record.subpage, cache->index);
+        //printf("Found record offset %" PRIi16 " subpage %" PRIu32 " index %" PRIu32 " steps back %" PRIi32 "\n", record.offset, record.subpage, cache->index, steps_back);
     } else{
+        //printf("starting from tail\n");
         record = object->tail;
         // Number of objects written after target index
         steps_back = object->num_objects - 1 - index;
     }
 
-    MYDEBUG("Steps to take: %d\n", steps_back);
+    //printf("Steps to take: %d\n", steps_back);
 
     while(true) {
         if(steps_back <= 0) {
@@ -307,18 +344,24 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRec
         // log, which is most certainly a bug.
         assert(rh.is_first == 0);
 
-        MYDEBUG("steps back %d\n", steps_back);
+        //printf("steps back %d\n", steps_back);
         steps_back -= rh.length / object->object_size;
 
         if(record.subpage != rh.predecessor.subpage) {
             // Continue here, this doesnt work yet
             // assert(false);
             //od->osl->record_cache[0]
-            MYDEBUG("caching index %d\n", steps_back);
+            //MYDEBUG("caching index %d\n", steps_back);
             // TODO: more than one cache depth thingy
             osl_record_cache_s* c = &od->osl->record_cache[0];
             c->index = index + steps_back;
             c->record = rh.predecessor;
+        } else if(recreate_cache && cache_slot_to_fill > 0 && ipow(cache_x, cache_slot_to_fill) == (index + steps_back)) {
+            //printf("caching index %" PRIu32 "\n", (uint32_t) index + steps_back);
+            osl_record_cache_s* c = &od->osl->record_cache[cache_slot_to_fill];
+            c->record = rh.predecessor;
+            c->index = index + steps_back;
+            cache_slot_to_fill--;
         }
 
         record = rh.predecessor;

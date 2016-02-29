@@ -14,6 +14,7 @@ USEMODULE += osl
 
 USEPKG += libfixmath
 
+
 INCLUDES += -I$(shell pwd)
 CFLAGS += -DDEVELHELP -g
 
