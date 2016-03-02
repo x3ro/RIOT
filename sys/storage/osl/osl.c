@@ -592,3 +592,8 @@ int osl_queue_remove(osl_od* od, void* item) {
     object->num_objects--;
     return 0;
 }
+
+bool osl_stream_next(osl_iter *iter, void *target) {
+    return iter->index < iter->od.osl->objects[iter->od.index].num_objects &&
+           !osl_stream_get(&iter->od, target, iter->index++);
+}

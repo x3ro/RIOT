@@ -170,6 +170,8 @@ int osl_queue_add(osl_od* cd, void* item);
 int osl_queue_peek(osl_od* cd, void* item);
 int osl_queue_remove(osl_od* cd, void* item);
 
+bool osl_stream_next(osl_iter *iter, void *buffer);
+
 /**
  * Helper function to get the referenced object from an object descriptor.
  */
