@@ -267,7 +267,7 @@ osl_record_cache_s* _osl_record_cache_lookup(osl_od* od, unsigned long index) {
             break;
         }
 
-        if(c->index > (long long) index) {
+        if(c->index > (int64_t) index) {
             return c;
         }
     }
