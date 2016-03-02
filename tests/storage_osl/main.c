@@ -128,7 +128,6 @@ int read(unsigned char *buffer, uint32_t page, uint32_t offset, uint16_t length)
 }
 
 int erase(uint32_t block) {
-    //unsigned int block_to_erase = block + 0;
     unsigned int buff[2];
     buff[0] = block * FTL_PAGES_PER_BLOCK;
     buff[1] = (block + 1) * FTL_PAGES_PER_BLOCK - 1;
@@ -243,14 +242,7 @@ static void test_init_ftl(void) {
 
 static void test_init_ftl(void) {
     printf("%s\n", __FUNCTION__);
-    // device.write = write;
-    // device.read = read;
-    // device.erase = erase;
-    // device.page_size = 1024;
-    // device.subpage_size = 256;
-    // device.pages_per_block = 512;
-    // device.total_pages = 32768;
-    //
+
     device.partitions = partitions;
     int ret;
 
