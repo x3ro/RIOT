@@ -301,7 +301,7 @@ void benchmark_ftl_read(void) {
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         for(int p=0; p<ITERATIONS; p++) {
-            ret = ftl_read_raw(&data_partition, subpage_buffer, page);
+            ret = ftl_read_raw(&index_partition, subpage_buffer, page);
             myassert(ret == 0);
             page++;
         }
@@ -313,6 +313,7 @@ void benchmark_ftl_read(void) {
     printf("]\n");
 
 
+    page = 0; // switching to data partition
     printf("read_no_ecc = [\n");
     for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
