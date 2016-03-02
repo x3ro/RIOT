@@ -224,6 +224,13 @@ static void test_init_ftl(void) {
     // device.total_pages = FTL_TOTAL_PAGES;
 
     int ret = ftl_init(&device);
+
+    ret = ftl_format(&index_partition);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
+    ret = ftl_format(&data_partition);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+
     TEST_ASSERT(index_partition.device != 0);
     TEST_ASSERT_EQUAL_INT(0, index_partition.base_offset);
     TEST_ASSERT_EQUAL_INT(4, index_partition.size);
@@ -234,6 +241,9 @@ static void test_init_ftl(void) {
 
     TEST_ASSERT_EQUAL_INT(6, device.ecc_size);
     TEST_ASSERT_EQUAL_INT(0, ret);
+
+    TEST_ASSERT_EQUAL_INT(0, index_partition.next_subpage);
+    TEST_ASSERT_EQUAL_INT(0, data_partition.next_subpage);
 }
 
 #endif /* Board MSBA2 */
@@ -261,6 +271,9 @@ static void test_init_ftl(void) {
 
     ret = ftl_format(&data_partition);
     TEST_ASSERT_EQUAL_INT(0, ret);
+
+    TEST_ASSERT_EQUAL_INT(0, index_partition.next_subpage);
+    TEST_ASSERT_EQUAL_INT(0, data_partition.next_subpage);
 }
 
 #endif
@@ -270,18 +283,18 @@ static void test_init_osl(void) {
     int ret = osl_init(&osl, &device, &data_partition);
     TEST_ASSERT_EQUAL_INT(0, ret);
 
-    //TEST_ASSERT_EQUAL_INT(0, osl.latest_index.first_page);
-
     TEST_ASSERT_EQUAL_INT(503, osl.subpage_buffer_size);
     TEST_ASSERT_EQUAL_INT(0, osl.subpage_buffer_cursor);
     TEST_ASSERT(osl.subpage_buffer != 0);
 
     TEST_ASSERT(osl.read_buffer != 0);
     TEST_ASSERT_EQUAL_INT(0, osl.read_buffer_subpage);
-    // TEST_ASSERT_EQUAL_INT(-1, osl.read_buffer_partition);
 
     TEST_ASSERT_EQUAL_INT(0, osl.open_objects);
-    //TEST_ASSERT_EQUAL_INT(0, osl.next_data_subpage);
+
+    // because the osl writes an initial metadata entry upon first initialization
+    TEST_ASSERT_EQUAL_INT(1, index_partition.next_subpage);
+    TEST_ASSERT_EQUAL_INT(0, data_partition.next_subpage);
 }
 
 static void test_stream(void) {
@@ -338,6 +351,16 @@ static void test_stream(void) {
 
     ret = osl_stream_get(&stream, &x, 3);
     TEST_ASSERT_EQUAL_INT(-EFAULT, ret);
+
+    osl_iter iter;
+    osl_iterator(&stream, &iter);
+    uint64_t count = 1;
+    while(osl_stream_next(&iter, &x)) {
+        TEST_ASSERT_EQUAL_INT(count, x);
+        count++;
+        //printf("hi na %"PRIu64" %"PRIu32"\n", x, iter.index);
+
+    }
 
     osl_od stream2;
     ret = osl_stream(&osl, &stream2, "test:stream2", sizeof(uint8_t));
