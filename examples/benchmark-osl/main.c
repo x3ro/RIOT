@@ -44,7 +44,7 @@
 #include "xtimer.h"
 
 #define ITERATIONS 2000
-#define REPS 10
+#define REPS 5
 
 unsigned char subpage_buffer[512];
 unsigned char ecc_buffer[6];
@@ -345,7 +345,10 @@ void benchmark_ftl_read(void) {
     printf("]\n");
 }
 
+bool osl_write_executed = false;
+
 void benchmark_osl_write(void) {
+    osl_write_executed = true;
     int ret = 0;
 
     timex_t then;
@@ -353,7 +356,7 @@ void benchmark_osl_write(void) {
     timex_t elapsed;
 
     osl_od od;
-    ret = osl_stream(&osl, &od, "bench:stream", sizeof(uint32_t));
+    ret = osl_stream(&osl, &od, "bench:stream", sizeof(uint64_t));
     myassert(ret == 0);
 
     printf("osl_write = [\n");
@@ -373,6 +376,11 @@ void benchmark_osl_write(void) {
 
 
 void benchmark_osl_read(void) {
+    if(osl_write_executed) {
+        printf("osl_write and osl_read tests must not be run together\n");
+        return;
+    }
+
     int ret = 0;
 
     timex_t then;
@@ -385,8 +393,8 @@ void benchmark_osl_read(void) {
 
     osl_iter iter;
     osl_iterator(&od, &iter);
-    uint64_t x;
-    uint64_t sum;
+    uint32_t x;
+    uint32_t sum = 0;
 
     // create some elements
     for(int p=0; p<100; p++) {
@@ -395,13 +403,16 @@ void benchmark_osl_read(void) {
     }
 
     printf("osl_iterate_100 = [\n");
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         osl_iterator(&od, &iter);
 
-        while(OSL_STREAM_NEXT(x, iter)) {
+        sum = 0;
+        while(osl_stream_next(&iter, &x)) {
             sum += x;
         }
+
+        printf("sum %"PRIu32"\n", sum);
 
         xtimer_now_timex(&now);
         elapsed = timex_sub(now, then);
@@ -416,15 +427,17 @@ void benchmark_osl_read(void) {
         myassert(ret == 0);
     }
 
-
     printf("osl_iterate_500 = [\n");
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         osl_iterator(&od, &iter);
 
-        while(OSL_STREAM_NEXT(x, iter)) {
+        sum = 0;
+        while(osl_stream_next(&iter, &x)) {
             sum += x;
         }
+
+        printf("sum %"PRIu32"\n", sum);
 
         xtimer_now_timex(&now);
         elapsed = timex_sub(now, then);
@@ -440,13 +453,15 @@ void benchmark_osl_read(void) {
 
 
     printf("osl_iterate_1000 = [\n");
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         osl_iterator(&od, &iter);
 
-        while(OSL_STREAM_NEXT(x, iter)) {
+        sum = 0;
+        while(osl_stream_next(&iter, &x)) {
             sum += x;
         }
+        printf("sum %"PRIu32"\n", sum);
 
         xtimer_now_timex(&now);
         elapsed = timex_sub(now, then);
@@ -460,14 +475,42 @@ void benchmark_osl_read(void) {
         myassert(ret == 0);
     }
 
+
     printf("osl_iterate_2000 = [\n");
-    for(int i=0; i<2; i++) {
+    for(int i=0; i<REPS; i++) {
         xtimer_now_timex(&then);
         osl_iterator(&od, &iter);
 
-        while(OSL_STREAM_NEXT(x, iter)) {
+        sum = 0;
+        while(osl_stream_next(&iter, &x)) {
             sum += x;
         }
+
+        printf("sum %"PRIu32"\n", sum);
+
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+    printf("]\n");
+
+    for(int p=0; p<2000; p++) {
+        ret = osl_stream_append(&od, &p);
+        myassert(ret == 0);
+    }
+
+    printf("osl_iterate_4000 = [\n");
+    for(int i=0; i<REPS; i++) {
+        xtimer_now_timex(&then);
+        osl_iterator(&od, &iter);
+
+        sum = 0;
+        while(osl_stream_next(&iter, &x)) {
+            sum += x;
+        }
+
+        printf("sum %"PRIu32"\n", sum);
 
         xtimer_now_timex(&now);
         elapsed = timex_sub(now, then);
@@ -487,14 +530,14 @@ int main(void)
     myassert(ret == 0);
     printf("format complete\n");
 
-    //benchmark_ftl_write();
-    //benchmark_ftl_read();
+    // benchmark_ftl_write();
+    // benchmark_ftl_read();
     //
     //
     // OSL
     init_osl();
-    //benchmark_osl_write();
-    benchmark_osl_read();
+    benchmark_osl_write();
+    //benchmark_osl_read();
 
 
 
