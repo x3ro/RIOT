@@ -37,9 +37,6 @@ extern "C" {
 #define OSL_DATA_PARTITION 1
 
 
-#define OSL_STREAM_NEXT(target, iter)     iter.index < iter.od.osl->objects[iter.od.index].num_objects && !osl_stream_get(&iter.od, &target, iter.index++)
-
-
 
 
 
