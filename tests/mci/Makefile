@@ -3,6 +3,7 @@ include ../Makefile.tests_common
 
 USEMODULE += mci
 USEMODULE += xtimer
+USEMODULE += timex
 USEMODULE += embunit
 
 ifneq (,$(filter native,$(BOARD)))

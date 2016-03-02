@@ -160,6 +160,35 @@ static void main_test(void)
         return;
     }
 
+    erase_block(0);
+
+    char sprint_buffer[16];
+    timex_t then;
+    timex_t now;
+    timex_t elapsed;
+
+    printf("write\n");
+    for(int i=0; i<10; i++) {
+        xtimer_now_timex(&then);
+        status = MCI_write(teststring2, i, 1);
+        TEST_ASSERT_EQUAL_INT(0, status);
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+
+    printf("read\n");
+    for(int i=0; i<10; i++) {
+        xtimer_now_timex(&then);
+        status = MCI_read(teststring2, i, 1);
+        TEST_ASSERT_EQUAL_INT(0, status);
+        xtimer_now_timex(&now);
+        elapsed = timex_sub(now, then);
+        timex_to_str(elapsed, sprint_buffer);
+        printf("%s, \n", sprint_buffer);
+    }
+
     unsigned char op_sector_count = 1; // Read/write single sector
 
     printf("About to write the following sector 0:\n%s\n", teststring1);
