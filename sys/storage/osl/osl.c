@@ -356,7 +356,8 @@ int _osl_log_record_get(osl_od* od, void* object_buffer, osl_record_s *resultRec
             osl_record_cache_s* c = &od->osl->record_cache[0];
             c->index = index + steps_back;
             c->record = rh.predecessor;
-        } else if(recreate_cache && cache_slot_to_fill > 0 && ipow(cache_x, cache_slot_to_fill) == (index + steps_back)) {
+        //} if(recreate_cache && cache_slot_to_fill > 0 && ipow(cache_x, cache_slot_to_fill) == (index + steps_back)) {
+        } if(recreate_cache && cache_slot_to_fill > 0 && (object->num_objects/OSL_RECORD_CACHE_SIZE)*cache_slot_to_fill == (index + steps_back)) {
             //printf("caching index %" PRIu32 "\n", (uint32_t) index + steps_back);
             osl_record_cache_s* c = &od->osl->record_cache[cache_slot_to_fill];
             c->record = rh.predecessor;
