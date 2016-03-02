@@ -275,16 +275,17 @@ int main(void)
     osl_iter iter;
     osl_iterator(&stream, &iter);
     char c;
-    while(OSL_STREAM_NEXT(c, iter)) {
-        printf("===============> %c (%d)\n", c, c);
+    while(osl_stream_next(&iter, &c)) {
+        //printf("===============> %c (%d)\n", c, c);
+        printf("%c", c);
     }
 
-    printf("\n\nAdd new content: \n\n");
+    printf("\n\nAdd new content (finish with an '!'): \n\n");
 
 
     while(1) {
         int ch = getchar();
-        printf("(%d)\n", ch);
+        //printf("(%d)\n", ch);
         if(ch == -1 || ch == 33) {
             break;
         }
@@ -294,20 +295,20 @@ int main(void)
         }
     }
 
-    printf("size of stream %d\n", (int) obj->num_objects);
+    printf("Current size of stream: %d\n", (int) obj->num_objects);
     ret = osl_create_checkpoint(&osl);
     assert__(ret == 0);
 
     ret = ftl_read_raw(&index_partition, device._subpage_buffer, 0);
     assert__(ret == 0);
-    HEXDUMP_BUFFER(device._subpage_buffer, device.subpage_size);
+    //HEXDUMP_BUFFER(device._subpage_buffer, device.subpage_size);
 
-    osl_iterator(&stream, &iter);
-    while(OSL_STREAM_NEXT(c, iter)) {
-        printf("%c", c);
-    }
+    // osl_iterator(&stream, &iter);
+    // while(osl_stream_next(&iter, &c)) {
+    //     printf("%c", c);
+    // }
 
-    printf("\n\nthe end\n");
+    printf("\n\nBye!\n");
 
     lpm_set(LPM_POWERDOWN);
     return 0;
