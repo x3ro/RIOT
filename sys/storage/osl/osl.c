@@ -511,7 +511,7 @@ int osl_iterator(osl_od* od, osl_iter *iter) {
 }
 
 int osl_create_checkpoint(osl_s* osl) {
-    printf("Creating checkpoint\n\topen objects: %d\n", osl->open_objects);
+    //printf("Creating checkpoint\n\topen objects: %d\n", osl->open_objects);
     int ret = _osl_buffer_flush(osl);
     if(ret != 0) {
         return ret;
