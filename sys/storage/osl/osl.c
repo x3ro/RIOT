@@ -424,7 +424,8 @@ int osl_init(osl_s *osl, ftl_device_s *device, ftl_partition_s *data_partition) 
 
     if(ret < 0) {
         osl->open_objects = 0;
-        ftl_write_metadata(device, NULL, 0);
+        //ftl_write_metadata(device, NULL, 0);
+        osl_create_checkpoint(osl);
     } else {
         osl->open_objects = header.foreign_metadata_length / sizeof(osl_object_s);
     }
