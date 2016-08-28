@@ -139,6 +139,8 @@ int ftl_init(ftl_device_s *device) {
     //
     //
 
+    // TODO: return an error if the supplied paritions overlap.
+
     // TODO :D
     device->is_initialized = true;
     device->metadata_version = 0;

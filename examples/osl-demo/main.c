@@ -244,8 +244,8 @@ int main(void)
     ret = osl_create_checkpoint(&osl);
     assert__(ret == 0);
 
-    ret = ftl_read_raw(&index_partition, device._subpage_buffer, 0);
-    assert__(ret == 0);
+    // ret = ftl_read_raw(&index_partition, device._subpage_buffer, 0);
+    // assert__(ret == 0);
 
     printf("\n\nBye!\n");
 
