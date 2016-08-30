@@ -568,3 +568,11 @@ ifneq (,$(filter random,$(USEMODULE)))
         USEMODULE += tinymt32
     endif
 endif
+
+ifneq (,$(filter osl,$(USEMODULE)))
+  USEMODULE += ftl
+endif
+
+ifneq (,$(filter ftl,$(USEMODULE)))
+  USEMODULE += hamming256
+endif
