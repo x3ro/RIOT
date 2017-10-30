@@ -1,6 +1,6 @@
 # define the cpu used by the stm32f4-discovery board
 export CPU = stm32f4
-export CPU_MODEL = stm32f407vg
+export CPU_MODEL = stm32f429zi
 
 # set default port depending on operating system
 PORT_LINUX ?= /dev/ttyUSB0
