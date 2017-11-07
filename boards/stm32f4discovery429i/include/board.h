@@ -49,8 +49,8 @@ extern "C" {
  */
 #define LED0_PIN            GPIO_PIN(PORT_D, 13)
 #define LED1_PIN            GPIO_PIN(PORT_D, 12)
-#define LED2_PIN            GPIO_PIN(PORT_D, 14)
-#define LED3_PIN            GPIO_PIN(PORT_D, 15)
+#define LED2_PIN            GPIO_PIN(PORT_G, 13)
+#define LED3_PIN            GPIO_PIN(PORT_D, 14)
 
 #define LED_PORT            GPIOD
 #define LED0_MASK           (1 << 13)

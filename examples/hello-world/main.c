@@ -19,6 +19,9 @@
  * @}
  */
 
+#include "board.h"
+#include "periph/gpio.h"
+#include "xtimer.h"
 #include <stdio.h>
 
 int main(void)
@@ -27,6 +30,17 @@ int main(void)
 
     printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+    int on = 0;
+    while(true) {
+    	if(on) {
+    		gpio_clear(LED2_PIN);
+    	} else {
+    		gpio_set(LED2_PIN);
+    	}
+    	on = !on;
+    	xtimer_sleep(1);
+    }
+
 
     return 0;
 }
